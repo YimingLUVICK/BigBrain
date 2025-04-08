@@ -1,34 +1,44 @@
-import { useState } from 'react';
-import reactLogo from './assets/react.svg';
-import viteLogo from '/vite.svg';
+import { useEffect, useState } from 'react';
+import Login from './pages/Login';
+import Register from './pages/Register';
 
 function App() {
-  const [count, setCount] = useState(0);
-  
-  return (
-    <>
-      <div>
-        <a href="https://vitejs.dev" target="_blank" rel="noreferrer noopener">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank" rel="noreferrer noopener">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+  const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
+
+  useEffect(() => {
+    const onHashChange = () => {
+      setRoute(window.location.hash.slice(1) || '/');
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  let Page;
+  if (route === '/login') Page = <Login />;
+  else if (route === '/register') Page = <Register />;
+  else {
+    Page = (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+        <h1 className="text-4xl font-bold mb-6">Welcome to BigBrain!</h1>
+        <div className="space-x-4">
+          <a
+            href="#/login"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Login
+          </a>
+          <a
+            href="#/register"
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Register
+          </a>
+        </div>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button id="counter" onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    );
+  }
+
+  return <div>{Page}</div>;
 }
 
-export default App
+export default App;
