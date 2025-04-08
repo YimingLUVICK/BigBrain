@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import Dashboard from './pages/Dashboard'; // ✅ 新增导入
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -14,9 +15,13 @@ function App() {
   }, []);
 
   let Page;
-  if (route === '/login') Page = <Login />;
-  else if (route === '/register') Page = <Register />;
-  else {
+  if (route === '/login') {
+    Page = <Login />;
+  } else if (route === '/register') {
+    Page = <Register />;
+  } else if (route === '/dashboard') {
+    Page = <Dashboard />; // ✅ 添加 Dashboard 页面
+  } else {
     Page = (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
         <h1 className="text-4xl font-bold mb-6">Welcome to BigBrain!</h1>

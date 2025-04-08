@@ -1,9 +1,7 @@
-// src/pages/Register.jsx
 import { useState } from 'react';
 
 export default function Register() {
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
@@ -21,7 +19,7 @@ export default function Register() {
       const res = await fetch('http://localhost:5005/admin/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name })
+        body: JSON.stringify({ email, password })  // ✅ 只发 email 和 password
       });
 
       const data = await res.json();
@@ -43,17 +41,6 @@ export default function Register() {
         <h2 className="text-2xl font-bold mb-4">Admin Register</h2>
 
         {error && <p className="text-red-500 mb-2">{error}</p>}
-
-        <label className="block mb-2">
-          Name
-          <input
-            className="mt-1 w-full p-2 border rounded"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-        </label>
 
         <label className="block mb-2">
           Email
