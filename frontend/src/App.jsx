@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './pages/Dashboard'; // ✅ 新增导入
+import Dashboard from './pages/Dashboard'; 
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -20,7 +20,7 @@ function App() {
   } else if (route === '/register') {
     Page = <Register />;
   } else if (route === '/dashboard') {
-    Page = <Dashboard />; // ✅ 添加 Dashboard 页面
+    Page = <Dashboard />; 
   } else {
     Page = (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">

@@ -20,7 +20,7 @@ export default function Login() {
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
       localStorage.setItem('token', data.token);
-      // 跳转到 dashboard
+      
       window.location.hash = '/dashboard';
     } catch (err) {
       setError(err.message);
