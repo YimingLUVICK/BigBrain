@@ -46,7 +46,7 @@ export default function Dashboard() {
       }
 
       setNewGameName('');
-      await fetchGames(); // 重新加载
+      await fetchGames(); 
     } catch (err) {
       setError(err.message);
     }
