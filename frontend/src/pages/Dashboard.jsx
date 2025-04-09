@@ -52,9 +52,38 @@ export default function Dashboard() {
     }
   };
 
+  const handleDelete = async (id) => {
+    try {
+      const res = await fetch(`http://localhost:5005/admin/games/${id}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to delete');
+      }
+      await fetchGames();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold mb-4">My Games</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold">My Games</h1>
+        <button
+          className="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded"
+          onClick={() => {
+            localStorage.removeItem('token');
+            window.location.hash = '/login';
+          }}
+        >
+          Logout
+        </button>
+      </div>
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
@@ -84,28 +113,37 @@ export default function Dashboard() {
           return (
             <div
               key={game.id}
-              className="bg-white shadow rounded p-4 border hover:border-blue-500"
-              onClick={() => (window.location.hash = `/game/${game.id}`)}
-              style={{ cursor: 'pointer' }}
+              className="bg-white shadow rounded p-4 border hover:border-blue-500 transition duration-150"
             >
-              <h2 className="text-xl font-bold">{game.name}</h2>
-              <p className="text-sm text-gray-600">
-                {questionCount} questions | {totalTime} sec
-              </p>
-              <p className="text-sm mt-1">Created by: {game.owner}</p>
-              <p className="text-sm">Status: {active}</p>
+              <div
+                onClick={() => (window.location.hash = `/game/${game.id}`)}
+                className="cursor-pointer"
+              >
+                <h2 className="text-xl font-bold">{game.name}</h2>
+                <p className="text-sm text-gray-600">
+                  {questionCount} questions | {totalTime} sec
+                </p>
+                <p className="text-sm mt-1">Created by: {game.owner}</p>
+                <p className="text-sm">Status: {active}</p>
 
-              {game.thumbnail ? (
-                <img
-                  src={game.thumbnail}
-                  alt="Thumbnail"
-                  className="mt-2 h-32 w-full object-cover rounded"
-                />
-              ) : (
-                <div className="mt-2 h-32 bg-gray-200 flex items-center justify-center text-gray-500 rounded">
-                  No thumbnail
-                </div>
-              )}
+                {game.thumbnail ? (
+                  <img
+                    src={game.thumbnail}
+                    alt="Thumbnail"
+                    className="mt-2 h-32 w-full object-cover rounded"
+                  />
+                ) : (
+                  <div className="mt-2 h-32 bg-gray-200 flex items-center justify-center text-gray-500 rounded">
+                    No thumbnail
+                  </div>
+                )}
+              </div>
+              <button
+                className="mt-3 w-full bg-red-400 hover:bg-red-500 text-white py-1 rounded text-sm"
+                onClick={() => handleDelete(game.id)}
+              >
+                Delete Game
+              </button>
             </div>
           );
         })}
