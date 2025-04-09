@@ -6,6 +6,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
 
   const token = localStorage.getItem('token');
+  const email = localStorage.getItem('email');
 
   const fetchGames = async () => {
     try {
@@ -29,24 +30,38 @@ export default function Dashboard() {
 
   const handleCreate = async () => {
     if (!newGameName.trim()) return;
-
     try {
       const res = await fetch('http://localhost:5005/admin/games', {
-        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const newId = Date.now();
+      const updatedGames = [
+        ...data.games,
+        {
+          id: newId,
+          name: newGameName,
+          owner: email,
+          questions: [],
+        },
+      ];
+
+      const updateRes = await fetch('http://localhost:5005/admin/games', {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name: newGameName }),
+        body: JSON.stringify({ games: updatedGames }),
       });
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create game');
+      if (!updateRes.ok) {
+        const errData = await updateRes.json();
+        throw new Error(errData.error || 'Failed to update games');
       }
 
       setNewGameName('');
-      await fetchGames(); 
+      await fetchGames();
     } catch (err) {
       setError(err.message);
     }
@@ -54,16 +69,26 @@ export default function Dashboard() {
 
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5005/admin/games/${id}`, {
-        method: 'DELETE',
+      const res = await fetch(`http://localhost:5005/admin/games`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const updatedGames = data.games.filter((game) => game.id !== id);
+
+      const updateRes = await fetch(`http://localhost:5005/admin/games`, {
+        method: 'PUT',
         headers: {
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
+        body: JSON.stringify({ games: updatedGames }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to delete');
+
+      if (!updateRes.ok) {
+        const errData = await updateRes.json();
+        throw new Error(errData.error || 'Failed to delete game');
       }
+
       await fetchGames();
     } catch (err) {
       setError(err.message);

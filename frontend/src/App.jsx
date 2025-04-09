@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard'; 
+import EditGame from './pages/EditGame';
+import EditQuestion from './pages/EditQuestion';
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -20,7 +22,11 @@ function App() {
   } else if (route === '/register') {
     Page = <Register />;
   } else if (route === '/dashboard') {
-    Page = <Dashboard />; 
+    Page = <Dashboard />;
+  } else if (route.startsWith('/game/') && !route.includes('/question/')) {
+    Page = <EditGame />;
+  } else if (route.includes('/question/')) {
+    Page = <EditQuestion />;
   } else {
     Page = (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">

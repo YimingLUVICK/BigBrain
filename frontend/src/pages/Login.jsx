@@ -20,6 +20,7 @@ export default function Login() {
       if (!res.ok) throw new Error(data.error || 'Login failed');
 
       localStorage.setItem('token', data.token);
+      localStorage.setItem('email', email);
       
       window.location.hash = '/dashboard';
     } catch (err) {
