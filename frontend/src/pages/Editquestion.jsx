@@ -136,4 +136,84 @@ export default function Editquestion({ gameId, questionId }) {
         </div>
       </div>
 
-      
+      {/* YouTube Link */}
+      <label className="block mb-2 font-semibold">YouTube Video URL (optional)</label>
+      <input
+        type="text"
+        className="w-full p-2 border rounded mb-4"
+        value={question.video || ''}
+        onChange={(e) => setQuestion({ ...question, video: e.target.value })}
+      />
+
+      {/* Image Upload */}
+      <label className="block mb-2 font-semibold">Upload Image (optional)</label>
+      <input
+        type="file"
+        accept="image/*"
+        className="mb-4"
+        onChange={handleFileUpload}
+      />
+      {question.image && (
+        <img src={question.image} alt="Question" className="mb-4 rounded w-full h-48 object-cover" />
+      )}
+
+      {/* Answers */}
+      <label className="block mb-2 font-semibold">Answers (2 to 6)</label>
+      {(question.answers || []).map((ans, idx) => (
+        <div key={idx} className="flex items-center space-x-2 mb-2">
+          <input
+            type="text"
+            value={ans.text}
+            onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
+            className="flex-1 p-2 border rounded"
+            placeholder={`Answer ${idx + 1}`}
+          />
+          {question.type === 'single' ? (
+            <input
+              type="radio"
+              name="correctSingle"
+              checked={ans.correct}
+              onChange={() =>
+                setQuestion({
+                  ...question,
+                  answers: question.answers.map((a, i) => ({
+                    ...a,
+                    correct: i === idx,
+                  })),
+                })
+              }
+            />
+          ) : (
+            <input
+              type="checkbox"
+              checked={ans.correct}
+              onChange={(e) => updateAnswer(idx, 'correct', e.target.checked)}
+            />
+          )}
+          <button
+            onClick={() => removeAnswer(idx)}
+            className="text-sm bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded"
+          >
+            Delete
+          </button>
+        </div>
+      ))}
+      {question.answers?.length < 6 && (
+        <button
+          onClick={addAnswer}
+          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mb-4"
+        >
+          Add Answer
+        </button>
+      )}
+
+      {/* Save Button */}
+      <button
+        onClick={save}
+        className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
+      >
+        Save and Return
+      </button>
+    </div>
+  );
+}
