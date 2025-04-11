@@ -4,10 +4,10 @@ export default function Dashboard() {
   const [games, setGames] = useState([]);
   const [newGameName, setNewGameName] = useState('');
   const [error, setError] = useState('');
-
-  const [activeSessions, setActiveSessions] = useState({}); // gameId → sessionId 映射
+  const [activeSessions, setActiveSessions] = useState({});
   const [showSessionPopup, setShowSessionPopup] = useState(false);
   const [currentSessionId, setCurrentSessionId] = useState('');
+  const [resultPromptSessionId, setResultPromptSessionId] = useState(null);
 
   const token = localStorage.getItem('token');
   const email = localStorage.getItem('email');
@@ -19,6 +19,14 @@ export default function Dashboard() {
       });
       const data = await res.json();
       setGames(data.games || []);
+
+      const active = {};
+      for (const game of data.games) {
+        if (game.active) {
+          active[game.id] = game.active; // active 存的是 sessionId
+        }
+      }
+      setActiveSessions(active);
     } catch (err) {
       setError('Failed to fetch games');
     }
@@ -99,6 +107,50 @@ export default function Dashboard() {
     }
   };
 
+  // 启动游戏会话：调用接口 mutationType: "START"
+  const handleStartGame = async (gameId) => {
+    try {
+      const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ mutationType: 'START' }),
+      });
+
+      const data = await res.json();
+      // 根据后端实现，从 data 对象中提取 sessionId
+      const sessionId = data.data.sessionId;
+      setCurrentSessionId(sessionId);
+      setShowSessionPopup(true);
+      await fetchGames();
+    } catch (err) {
+      setError('Failed to start session');
+    }
+  };
+
+  // 停止游戏会话：调用接口 mutationType: "END"
+  const handleStopGame = async (gameId) => {
+    try {
+      await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ mutationType: 'END' }),
+      });
+
+      const sessionId = activeSessions[gameId];
+      setResultPromptSessionId(sessionId);
+      await fetchGames();
+    } catch (err) {
+      setError('Failed to stop session');
+    }
+  };
+
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="flex justify-between items-center mb-4">
@@ -138,6 +190,7 @@ export default function Dashboard() {
             game.questions?.reduce((sum, q) => sum + (q.time || 0), 0) || 0;
           const questionCount = game.questions?.length || 0;
           const active = game.active ? '🟢 Active' : '⚪️ Inactive';
+          const sessionId = activeSessions[game.id];
 
           return (
             <div
@@ -167,8 +220,25 @@ export default function Dashboard() {
                   </div>
                 )}
               </div>
+
+              {!sessionId ? (
+                <button
+                  onClick={() => handleStartGame(game.id)}
+                  className="mt-3 w-full bg-purple-500 hover:bg-purple-600 text-white py-1 rounded text-sm"
+                >
+                  Start Game
+                </button>
+              ) : (
+                <button
+                  onClick={() => handleStopGame(game.id)}
+                  className="mt-3 w-full bg-red-500 hover:bg-red-600 text-white py-1 rounded text-sm"
+                >
+                  Stop Game
+                </button>
+              )}
+
               <button
-                className="mt-3 w-full bg-red-400 hover:bg-red-500 text-white py-1 rounded text-sm"
+                className="mt-2 w-full bg-red-400 hover:bg-red-500 text-white py-1 rounded text-sm"
                 onClick={() => handleDelete(game.id)}
               >
                 Delete Game
@@ -177,6 +247,60 @@ export default function Dashboard() {
           );
         })}
       </div>
+
+      {/* Session Started Popup */}
+      {showSessionPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg text-center max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Game Session Started!</h2>
+            <p className="mb-2">Session ID:</p>
+            <p className="font-mono text-blue-600 text-lg">{currentSessionId}</p>
+
+            <button
+              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  `${window.location.origin}/#/play/${currentSessionId}`
+                );
+                alert('Session link copied!');
+              }}
+            >
+              Copy Link
+            </button>
+
+            <button
+              className="mt-2 block text-gray-600 underline text-sm mx-auto"
+              onClick={() => setShowSessionPopup(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Session Stopped → View Result Prompt */}
+      {resultPromptSessionId && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg text-center max-w-md w-full">
+            <h2 className="text-xl font-bold mb-4">Session Stopped</h2>
+            <p className="mb-4">Would you like to view the results?</p>
+            <button
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2"
+              onClick={() => {
+                window.location.hash = `/session/${resultPromptSessionId}`;
+              }}
+            >
+              Yes
+            </button>
+            <button
+              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+              onClick={() => setResultPromptSessionId(null)}
+            >
+              No
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
