@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard'; 
-import EditGame from './pages/EditGame';
-import EditQuestion from './pages/EditQuestion';
+import Editgame from './pages/Editgame';
+import Editquestion from './pages/Editquestion';
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -23,10 +23,16 @@ function App() {
     Page = <Register />;
   } else if (route === '/dashboard') {
     Page = <Dashboard />;
-  } else if (route.startsWith('/game/') && !route.includes('/question/')) {
-    Page = <EditGame />;
-  } else if (route.includes('/question/')) {
-    Page = <EditQuestion />;
+  } else if (route.startsWith('/game/') && route.includes('/question/')) {
+    // ✅ 支持路径：/#/game/{gameId}/question/{questionId}
+    const parts = route.split('/');
+    const gameId = parts[2];
+    const questionId = parts[4];
+    Page = <Editquestion gameId={gameId} questionId={questionId} />;
+  } else if (route.startsWith('/game/')) {
+    // ✅ 支持路径：/#/game/{gameId}
+    const gameId = route.split('/')[2];
+    Page = <Editgame gameId={gameId} />;
   } else {
     Page = (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">

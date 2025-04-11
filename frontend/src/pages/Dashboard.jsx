@@ -5,6 +5,10 @@ export default function Dashboard() {
   const [newGameName, setNewGameName] = useState('');
   const [error, setError] = useState('');
 
+  const [activeSessions, setActiveSessions] = useState({}); // gameId → sessionId 映射
+  const [showSessionPopup, setShowSessionPopup] = useState(false);
+  const [currentSessionId, setCurrentSessionId] = useState('');
+
   const token = localStorage.getItem('token');
   const email = localStorage.getItem('email');
 
