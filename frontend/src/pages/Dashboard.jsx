@@ -1,4 +1,4 @@
-// 修改后的 Dashboard.jsx
+// Dashboard.jsx
 import { useEffect, useState } from 'react';
 
 export default function Dashboard() {
@@ -6,7 +6,7 @@ export default function Dashboard() {
   const [newGameName, setNewGameName] = useState('');
   const [error, setError] = useState('');
   const [activeSessions, setActiveSessions] = useState({});
-  const [activeSessionPopups, setActiveSessionPopups] = useState([]);
+  const [activeSessionPopupIds, setActiveSessionPopupIds] = useState([]);
   const [resultPromptSessionIds, setResultPromptSessionIds] = useState([]);
 
   const token = localStorage.getItem('token');
@@ -118,7 +118,8 @@ export default function Dashboard() {
 
       const data = await res.json();
       const sessionId = data.data.sessionId;
-      setActiveSessionPopups((prev) => [...prev, sessionId]);
+      setActiveSessionPopupIds((prev) => [...prev, gameId]);
+      setResultPromptSessionIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
     } catch (err) {
       setError('Failed to start session');
@@ -135,8 +136,8 @@ export default function Dashboard() {
         body: JSON.stringify({ mutationType: 'END' }),
       });
 
-      const sessionId = activeSessions[gameId];
-      setResultPromptSessionIds((prev) => [...prev, sessionId]);
+      setResultPromptSessionIds((prev) => [...prev, gameId]);
+      setActiveSessionPopupIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
     } catch (err) {
       setError('Failed to stop session');
@@ -181,11 +182,13 @@ export default function Dashboard() {
           const questionCount = game.questions?.length || 0;
           const totalTime = game.questions?.reduce((s, q) => s + (q.time || 0), 0);
           const sessionId = activeSessions[game.id];
+          const showStartPopup = activeSessionPopupIds.includes(game.id);
+          const showResultPopup = resultPromptSessionIds.includes(game.id);
 
           return (
             <div
               key={game.id}
-              className="bg-white shadow rounded p-4 border hover:border-blue-500 transition duration-150"
+              className="relative bg-white shadow rounded p-4 border hover:border-blue-500 transition duration-150"
             >
               <div onClick={() => (window.location.hash = `/game/${game.id}`)} className="cursor-pointer">
                 <h2 className="text-xl font-bold">{game.name}</h2>
@@ -223,64 +226,55 @@ export default function Dashboard() {
               >
                 Delete Game
               </button>
+
+              {/* Start Popup */}
+              {showStartPopup && (
+                <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10 border rounded">
+                  <h2 className="text-xl font-bold mb-2">Session Started</h2>
+                  <p className="text-sm text-gray-700 mb-2">ID: {sessionId}</p>
+                  <button
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mb-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/#/play/${sessionId}`);
+                      alert('Session link copied!');
+                    }}
+                  >
+                    Copy Link
+                  </button>
+                  <button
+                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded"
+                    onClick={() => setActiveSessionPopupIds((prev) => prev.filter(id => id !== game.id))}
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+
+              {/* Stop Result Prompt */}
+              {showResultPopup && (
+                <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10 border rounded">
+                  <h2 className="text-xl font-bold mb-3">Session Stopped</h2>
+                  <p className="mb-2">View results?</p>
+                  <div className="flex space-x-2">
+                    <button
+                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded"
+                      onClick={() => window.location.hash = `/session/${sessionId}`}
+                    >
+                      Yes
+                    </button>
+                    <button
+                      className="bg-gray-300 hover:bg-gray-400 px-4 py-1 rounded"
+                      onClick={() => setResultPromptSessionIds((prev) => prev.filter(id => id !== game.id))}
+                    >
+                      No
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
       </div>
-
-      {/* === 多个 Start 弹窗 === */}
-      {activeSessionPopups.map((id) => (
-        <div key={id} className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg text-center max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Game Session Started!</h2>
-            <p className="mb-2">Session ID:</p>
-            <p className="font-mono text-blue-600 text-lg">{id}</p>
-            <button
-              className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-              onClick={() => {
-                navigator.clipboard.writeText(`${window.location.origin}/#/play/${id}`);
-                alert('Session link copied!');
-              }}
-            >
-              Copy Link
-            </button>
-            <button
-              className="mt-2 bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
-              onClick={() => (window.location.hash = `/session/${id}`)}
-            >
-              Go to Session Control
-            </button>
-            <button
-              className="mt-2 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
-              onClick={() => setActiveSessionPopups((prev) => prev.filter((sid) => sid !== id))}
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      ))}
-
-      {/* === 多个 Result 弹窗 === */}
-      {resultPromptSessionIds.map((id) => (
-        <div key={id} className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded shadow-lg text-center max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Session Stopped</h2>
-            <p className="mb-4">Would you like to view the results?</p>
-            <button
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mr-2"
-              onClick={() => (window.location.hash = `/session/${id}`)}
-            >
-              Yes
-            </button>
-            <button
-              className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
-              onClick={() => setResultPromptSessionIds((prev) => prev.filter((sid) => sid !== id))}
-            >
-              No
-            </button>
-          </div>
-        </div>
-      ))}
     </div>
   );
 }
