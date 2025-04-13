@@ -3,12 +3,6 @@ import fs from "fs";
 import jwt from "jsonwebtoken";
 import { AccessError, InputError } from "./error";
 
-import {
-  gameQuestionGetCorrectAnswers,
-  gameQuestionGetDuration,
-  gameQuestionPublicReturn,
-} from "./custom";
-
 const lock = new AsyncLock();
 
 const JWT_SECRET = "llamallamaduck";
@@ -182,7 +176,7 @@ export const getGamesFromAdmin = (email) =>
     resolve(filteredGames);
   });
 
-export const updateGamesFromAdmin = ({ gamesArray, email }) =>
+export const updateGamesFromAdmin = ({ gamesArrayFromRequest, email }) =>
   gameLock((resolve, reject) => {
     try {
       // Get all existing game IDs owned by this admin
@@ -191,15 +185,13 @@ export const updateGamesFromAdmin = ({ gamesArray, email }) =>
       );
 
       // Verify all games in array belong to admin
-      for (const game of gamesArray) {
-        if (!game.name || !game.owner) {
+      for (const gameFromRequest of gamesArrayFromRequest) {
+        if (!gameFromRequest.owner) {
           return reject(
-            new InputError(
-              `Game must have name and owner: ${game.name}, ${game.owner}`
-            )
+            new InputError(`Game must have owner: ${gameFromRequest.owner}`)
           );
         }
-        if (game.owner !== email) {
+        if (gameFromRequest.owner !== email) {
           return reject(
             new InputError("Cannot modify games owned by other admins")
           );
@@ -208,21 +200,22 @@ export const updateGamesFromAdmin = ({ gamesArray, email }) =>
 
       // Convert array to object format and update
       const newGames = {};
-      gamesArray.forEach((game) => {
+      gamesArrayFromRequest.forEach((gameFromRequest) => {
         // If game has an ID and it exists in admin's games, use that ID
         // Otherwise generate a new ID
         const gameId =
-          game.id && adminGameIds.includes(game.id.toString())
-            ? game.id.toString()
+          gameFromRequest.id &&
+          adminGameIds.includes(gameFromRequest.id.toString())
+            ? gameFromRequest.id.toString()
             : generateId(Object.keys(games));
 
+        //
         newGames[gameId] = {
-          name: game.name,
-          owner: game.owner,
-          questions: game.questions,
-          thumbnail: game.thumbnail,
-          active: game.active,
-          createdAt: game.createdAt || new Date().toISOString(),
+          owner: gameFromRequest.owner,
+          // Preserve active session ID & old sessions
+          active: getActiveSessionIdFromGameId(gameId),
+          oldSessions: getInactiveSessionsIdFromGameId(gameId),
+          ...gameFromRequest,
         };
       });
 
@@ -265,15 +258,19 @@ export const advanceGame = (gameId) =>
       if (session.position >= totalQuestions) {
         endGame(gameId);
       } else {
-        const questionDuration = gameQuestionGetDuration(
-          session.questions[session.position]
-        );
-        if (sessionTimeouts[session.id]) {
-          clearTimeout(sessionTimeouts[session.id]);
+        try {
+          const questionDuration = session.questions.at(
+            session.position
+          ).duration;
+          if (sessionTimeouts[session.id]) {
+            clearTimeout(sessionTimeouts[session.id]);
+          }
+          sessionTimeouts[session.id] = setTimeout(() => {
+            session.answerAvailable = true;
+          }, questionDuration * 1000);
+        } catch (error) {
+          reject(new InputError("Question duration not found"));
         }
-        sessionTimeouts[session.id] = setTimeout(() => {
-          session.answerAvailable = true;
-        }, questionDuration * 1000);
       }
       resolve(session.position);
     }
@@ -453,10 +450,17 @@ export const getQuestion = (playerId) =>
     if (session.position === -1) {
       return reject(new InputError("Session has not started yet"));
     } else {
-      resolve({
-        ...gameQuestionPublicReturn(session.questions[session.position]),
-        isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
-      });
+      try {
+        const question = session.questions.at(session.position);
+        const { correctAnswers, ...questionWithoutAnswer } = question;
+        const questionWithSessionInfo = {
+          ...questionWithoutAnswer,
+          isoTimeLastQuestionStarted: session.isoTimeLastQuestionStarted,
+        };
+        resolve(questionWithSessionInfo);
+      } catch (error) {
+        reject(new InputError("Question not found"));
+      }
     }
   });
 
@@ -470,40 +474,41 @@ export const getAnswers = (playerId) =>
     } else if (!session.answerAvailable) {
       return reject(new InputError("Answers are not available yet"));
     } else {
-      resolve(
-        gameQuestionGetCorrectAnswers(session.questions[session.position])
-      );
+      try {
+        const answers = session.questions.at(session.position).correctAnswers;
+        resolve(answers);
+      } catch (error) {
+        reject(new InputError("Question not found"));
+      }
     }
   });
 
-export const submitAnswers = (playerId, answerList) =>
+export const submitAnswers = (playerId, answersFromRequest) =>
   sessionLock((resolve, reject) => {
-    if (answerList === undefined || answerList.length === 0) {
+    if (answersFromRequest === undefined || answersFromRequest.length === 0) {
       return reject(new InputError("Answers must be provided"));
-    } else {
-      const session = getActiveSessionFromSessionId(
-        sessionIdFromPlayerId(playerId)
+    }
+
+    const session = getActiveSessionFromSessionId(
+      sessionIdFromPlayerId(playerId)
+    );
+    if (session.position === -1) {
+      return reject(new InputError("Session has not started yet"));
+    } else if (session.answerAvailable) {
+      return reject(
+        new InputError("Can't answer question once answer is available")
       );
-      if (session.position === -1) {
-        return reject(new InputError("Session has not started yet"));
-      } else if (session.answerAvailable) {
-        return reject(
-          new InputError("Can't answer question once answer is available")
-        );
-      } else {
-        session.players[playerId].answers[session.position] = {
-          questionStartedAt: session.isoTimeLastQuestionStarted,
-          answeredAt: new Date().toISOString(),
-          answerIds: answerList,
-          correct:
-            JSON.stringify(
-              gameQuestionGetCorrectAnswers(
-                session.questions[session.position]
-              ).sort()
-            ) === JSON.stringify(answerList.sort()),
-        };
-        resolve();
-      }
+    } else {
+      const currentQuestion = session.questions[session.position];
+      session.players[playerId].answers[session.position] = {
+        questionStartedAt: session.isoTimeLastQuestionStarted,
+        answeredAt: new Date().toISOString(),
+        answers: answersFromRequest,
+        correct:
+          JSON.stringify(currentQuestion.correctAnswers.sort()) ===
+          JSON.stringify(answersFromRequest.sort()),
+      };
+      resolve();
     }
   });
 

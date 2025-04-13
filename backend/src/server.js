@@ -93,7 +93,7 @@ app.put('/admin/games', catchErrors(authed(async (req, res, email) => {
   if (!Array.isArray(games)) {
     throw new InputError("Games must be an array");
   }
-  await updateGamesFromAdmin({ gamesArray: games, email });
+  await updateGamesFromAdmin({ gamesArrayFromRequest: games, email });
   return res.status(200).send({});
 })));
 
@@ -148,8 +148,8 @@ app.get('/play/:playerid/answer', catchErrors(async (req, res) => {
 
 app.put('/play/:playerid/answer', catchErrors(async (req, res) => {
   const { playerid, } = req.params;
-  const { answerIds, } = req.body;
-  await submitAnswers(playerid, answerIds);
+  const { answers, } = req.body;
+  await submitAnswers(playerid, answers);
   return res.status(200).send({});
 }));
 
