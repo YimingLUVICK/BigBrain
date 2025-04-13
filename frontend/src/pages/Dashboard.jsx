@@ -110,6 +110,7 @@ export default function Dashboard() {
   // 启动游戏会话：调用接口 mutationType: "START"
   const handleStartGame = async (gameId) => {
     try {
+      setResultPromptSessionId(null);
       const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
         headers: {
@@ -144,6 +145,7 @@ export default function Dashboard() {
 
       const sessionId = activeSessions[gameId];
       setResultPromptSessionId(sessionId);
+      setShowSessionPopup(false);
       await fetchGames();
     } catch (err) {
       setError('Failed to stop session');
@@ -266,13 +268,6 @@ export default function Dashboard() {
               }}
             >
               Copy Link
-            </button>
-
-            <button
-              className="mt-2 block text-gray-600 underline text-sm mx-auto"
-              onClick={() => setShowSessionPopup(false)}
-            >
-              Close
             </button>
           </div>
         </div>
