@@ -66,7 +66,10 @@ export default function EditGame({ gameId }) {
       type: 'single',
       time: 30,
       points: 0,
-      answers: [],
+      answers: [
+        { id: Date.now(), text: '', correct: false },
+        { id: Date.now() + 1, text: '', correct: false }
+      ],
     };
     const updated = {
       ...game,
@@ -74,7 +77,7 @@ export default function EditGame({ gameId }) {
     };
     setNewQuestionText('');
     updateGame(updated);
-  };
+  };  
 
   const handleMetaUpdate = (key, value) => {
     const updated = { ...game, [key]: value };
@@ -87,6 +90,13 @@ export default function EditGame({ gameId }) {
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <h1 className="text-3xl font-bold mb-4">Edit Game</h1>
+
+      <button
+        className="mb-4 bg-gray-300 hover:bg-gray-400 text-black px-4 py-2 rounded"
+        onClick={() => window.location.hash = '/dashboard'}
+      >
+        ← Back to Dashboard
+      </button>
 
       {/* Game Name */}
       <div className="mb-4">
