@@ -1,9 +1,10 @@
-// SessionControl.jsx
+// Sessioncontrol.jsx
 import { useEffect, useState } from 'react';
 
-export default function SessionControl({ sessionId }) {
+export default function Sessioncontrol({ sessionId }) {
   const [status, setStatus] = useState(null);
   const [results, setResults] = useState(null);
+  const [gameId, setGameId] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
 
@@ -33,7 +34,7 @@ export default function SessionControl({ sessionId }) {
 
   const handleAdvance = async () => {
     try {
-      const res = await fetch(`http://localhost:5005/admin/game/${status.gameId}/mutate`, {
+      const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -49,7 +50,7 @@ export default function SessionControl({ sessionId }) {
 
   const handleStop = async () => {
     try {
-      const res = await fetch(`http://localhost:5005/admin/game/${status.gameId}/mutate`, {
+      const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -66,6 +67,11 @@ export default function SessionControl({ sessionId }) {
 
   useEffect(() => {
     fetchStatus();
+  
+    const map = JSON.parse(localStorage.getItem('session_game_map') || '{}');
+    if (sessionId in map) {
+      setGameId(map[sessionId]);
+    }
   }, [sessionId]);
 
   if (error) return <div className="p-6 text-red-500">{error}</div>;

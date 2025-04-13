@@ -118,6 +118,12 @@ export default function Dashboard() {
 
       const data = await res.json();
       const sessionId = data.data.sessionId;
+
+      localStorage.setItem('session_game_map', JSON.stringify({
+        ...JSON.parse(localStorage.getItem('session_game_map') || '{}'),
+        [sessionId]: gameId
+      }));
+      
       setActiveSessionPopupIds((prev) => [...prev, gameId]);
       setResultPromptSessionIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
@@ -236,16 +242,17 @@ export default function Dashboard() {
                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mb-1"
                     onClick={() => {
                       navigator.clipboard.writeText(`${window.location.origin}/#/play/${sessionId}`);
-                      alert('Session link copied!');
                     }}
                   >
-                    Copy Link
+                    Join Link
                   </button>
                   <button
-                    className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded"
-                    onClick={() => setActiveSessionPopupIds((prev) => prev.filter(id => id !== game.id))}
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mb-1"
+                    onClick={() => {
+                      navigator.clipboard.writeText(`${window.location.origin}/#/session/${sessionId}`);
+                    }}
                   >
-                    Close
+                    Control Link
                   </button>
                 </div>
               )}

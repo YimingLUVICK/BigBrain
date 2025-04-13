@@ -4,6 +4,7 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard'; 
 import Editgame from './pages/Editgame';
 import Editquestion from './pages/Editquestion';
+import Sessioncontrol from './pages/Sessioncontrol';
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -23,6 +24,9 @@ function App() {
     Page = <Register />;
   } else if (route === '/dashboard') {
     Page = <Dashboard />;
+  } else if (route.startsWith('/session/')) {
+    const sessionId = route.split('/')[2];
+    Page = <Sessioncontrol sessionId={sessionId} />;
   } else if (route.startsWith('/game/') && route.includes('/question/')) {
     // ✅ 支持路径：/#/game/{gameId}/question/{questionId}
     const parts = route.split('/');
