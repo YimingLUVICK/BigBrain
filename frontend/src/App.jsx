@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import Editgame from './pages/Editgame';
 import Editquestion from './pages/Editquestion';
 import Sessioncontrol from './pages/Sessioncontrol';
+import Play from './pages/Play';
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -37,6 +38,9 @@ function App() {
     // ✅ 支持路径：/#/game/{gameId}
     const gameId = route.split('/')[2];
     Page = <Editgame gameId={gameId} />;
+  } else if (route.startsWith('/play/')) {
+    const sessionId = route.split('/')[2];
+    Page = <Play sessionId={sessionId} />;
   } else {
     Page = (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
