@@ -5,6 +5,7 @@ export default function Sessioncontrol({ sessionId }) {
   const [status, setStatus] = useState(null);
   const [results, setResults] = useState(null);
   const [gameId, setGameId] = useState(null);
+  const [countdown, setCountdown] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
 
@@ -67,12 +68,38 @@ export default function Sessioncontrol({ sessionId }) {
 
   useEffect(() => {
     fetchStatus();
-  
     const map = JSON.parse(localStorage.getItem('session_game_map') || '{}');
     if (sessionId in map) {
       setGameId(map[sessionId]);
     }
   }, [sessionId]);
+
+  useEffect(() => {
+    if (!status || !status.active || status.position >= 0) return;
+    const interval = setInterval(() => {
+      fetchStatus();
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [status]);
+
+  useEffect(() => {
+    if (!status || !status.active || status.position < 0) {
+      setCountdown(null);
+      return;
+    }
+  
+    const question = status.questions[status.position];
+    const start = new Date(status.isoTimeLastQuestionStarted).getTime();
+    const duration = (question.time || 30) * 1000;
+  
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const remaining = Math.max(0, Math.ceil((start + duration - now) / 1000));
+      setCountdown(remaining);
+    }, 1000);
+  
+    return () => clearInterval(interval);
+  }, [status]);
 
   if (error) return <div className="p-6 text-red-500">{error}</div>;
   if (!status) return <div className="p-6">Loading session...</div>;
@@ -82,6 +109,7 @@ export default function Sessioncontrol({ sessionId }) {
       <h1 className="text-2xl font-bold mb-4">Session Control: {sessionId}</h1>
       <p>Status: {status.active ? '🟢 Active' : '🔴 Finished'}</p>
       <p>Current position: {status.position}</p>
+      <p>Time remaining: {countdown !== null ? `${countdown}s` : '-'}</p>
       <p>Players: {status.players.join(', ')}</p>
 
       {status.active && (
@@ -120,7 +148,6 @@ export default function Sessioncontrol({ sessionId }) {
               ))}
             </tbody>
           </table>
-          {/* 图表与分析后续添加 */}
         </div>
       )}
     </div>

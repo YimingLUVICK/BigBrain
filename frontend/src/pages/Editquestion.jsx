@@ -69,7 +69,7 @@ export default function Editquestion({ gameId, questionId }) {
   const addAnswer = () => {
     if ((question.answers || []).length >= 6) return;
     const newAnswer = {
-      id: Date.now(), // 使用唯一值作为 id（也可用 uuid）
+      id: Date.now(), 
       text: '',
       correct: false,
     };

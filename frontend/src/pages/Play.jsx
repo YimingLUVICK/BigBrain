@@ -1,171 +1,196 @@
 // Play.jsx
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export default function Play({ sessionId }) {
+  const [step, setStep] = useState('join'); // join | waiting | playing | finished
   const [name, setName] = useState('');
   const [playerId, setPlayerId] = useState(null);
-  const [step, setStep] = useState('join');
   const [question, setQuestion] = useState(null);
-  const [selected, setSelected] = useState([]);
-  const [correctAnswers, setCorrectAnswers] = useState([]);
-  const [timeLeft, setTimeLeft] = useState(null);
+  const [countdown, setCountdown] = useState(null);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [correctIds, setCorrectIds] = useState([]);
+  const [answerAvailable, setAnswerAvailable] = useState(false);
   const [error, setError] = useState('');
+  const positionRef = useRef(-1);
+  const [currentPosition, setCurrentPosition] = useState(-1);
 
-  const joinSession = async () => {
+  // Check if session started every 2s
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!playerId || step !== 'waiting') return;
+      try {
+        const res = await fetch(`http://localhost:5005/play/${playerId}/status`);
+        const data = await res.json();
+        if (data.started) {
+          fetchQuestion(data.position);
+          positionRef.current = data.position;
+        }
+      } catch {}
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [playerId, step]);
+
+  // Poll for position changes
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!playerId || step !== 'playing') return;
+      try {
+        const res = await fetch(`http://localhost:5005/play/${playerId}/status`);
+        const data = await res.json();
+        if (data.started) {
+          if (data.position !== positionRef.current) {
+            fetchQuestion(data.position);
+            positionRef.current = data.position;
+          }
+        } else {
+          setStep('finished');
+        }
+      } catch {
+        setStep('finished');
+      }
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [playerId, step]);
+
+  const join = async () => {
     try {
+      const statusRes = await fetch(`http://localhost:5005/admin/session/${sessionId}/status`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const statusData = await statusRes.json();
+      if (statusData.results.position >= 0) {
+        setError('Game already started. You cannot join.');
+        return;
+      }
+
       const res = await fetch(`http://localhost:5005/play/join/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({ name })
       });
       const data = await res.json();
       setPlayerId(data.playerId);
       setStep('waiting');
-    } catch (err) {
-      setError('Join failed. Session may have started.');
+    } catch {
+      setError('Failed to join session');
     }
   };
 
-  // Poll session status
-  useEffect(() => {
-    if (step === 'waiting' && playerId) {
-      const interval = setInterval(async () => {
-        const res = await fetch(`http://localhost:5005/play/${playerId}/status`);
-        const data = await res.json();
-        if (data.started) {
-          clearInterval(interval);
-          setStep('playing');
-        }
-      }, 1500);
-      return () => clearInterval(interval);
+  const fetchQuestion = async (pos) => {
+    try {
+      const res = await fetch(`http://localhost:5005/play/${playerId}/question`);
+      const data = await res.json();
+      setQuestion(data.question);
+      setCountdown(data.question.time);
+      setSelectedIds([]);
+      setAnswerAvailable(false);
+      setCorrectIds([]);
+      setCurrentPosition(pos);
+      setStep('playing');
+    } catch {
+      setStep('finished');
     }
-  }, [step, playerId]);
+  };
 
-  // Fetch current question
   useEffect(() => {
-    if (step === 'playing') {
-      const fetchQ = async () => {
-        const res = await fetch(`http://localhost:5005/play/${playerId}/question`);
-        const data = await res.json();
-        setQuestion(data.question);
-        setSelected([]);
-        const duration = new Date(data.question.isoTimeLastQuestionStarted).getTime() + data.question.time * 1000;
-        const interval = setInterval(() => {
-          const now = Date.now();
-          const secondsLeft = Math.floor((duration - now) / 1000);
-          if (secondsLeft <= 0) {
-            clearInterval(interval);
-            setTimeLeft(0);
-            setStep('answer');
-            fetchAnswers();
-          } else {
-            setTimeLeft(secondsLeft);
-          }
-        }, 1000);
-      };
-      fetchQ();
+    if (!question || countdown === null || answerAvailable) return;
+    if (countdown <= 0) {
+      fetchCorrect();
+      return;
     }
-  }, [step]);
+    const timer = setTimeout(() => setCountdown(prev => prev - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, question, answerAvailable]);
 
-  const fetchAnswers = async () => {
+  const fetchCorrect = async () => {
     try {
       const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
       const data = await res.json();
-      setCorrectAnswers(data.answerIds || []);
-    } catch (err) {
-      setCorrectAnswers([]);
+      setCorrectIds(data.answerIds);
+      setAnswerAvailable(true);
+    } catch {
+      setStep('finished');
     }
   };
 
-  const handleSelect = async (id) => {
-    let updated = [...selected];
-    if (question.type === 'single') {
-      updated = [id];
+  const submitAnswer = async () => {
+    try {
+      await fetch(`http://localhost:5005/play/${playerId}/answer`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answerIds: selectedIds })
+      });
+    } catch {}
+  };
+
+  const toggleSelect = (id) => {
+    if (question.type === 'single' || question.type === 'truefalse') {
+      setSelectedIds([id]);
     } else {
-      updated = updated.includes(id) ? updated.filter((i) => i !== id) : [...updated, id];
+      setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
     }
-    setSelected(updated);
-
-    await fetch(`http://localhost:5005/play/${playerId}/answer`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answerIds: updated }),
-    });
   };
-
-  if (error) return <div className="p-6 text-red-500">{error}</div>;
 
   if (step === 'join') {
     return (
-      <div className="p-6 flex flex-col items-center">
-        <h2 className="text-2xl font-bold mb-4">Join Game</h2>
-        <p className="mb-2">Session: {sessionId}</p>
+      <div className="p-6 max-w-xl mx-auto">
+        <h2 className="text-xl font-bold mb-4">Join Session {sessionId}</h2>
         <input
-          type="text"
+          className="border p-2 w-full mb-4"
           placeholder="Your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="p-2 border rounded mb-4"
         />
         <button
-          onClick={joinSession}
-          className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          className="bg-blue-500 text-white px-4 py-2 rounded"
+          onClick={join}
         >
           Join
         </button>
+        {error && <p className="text-red-500 mt-2">{error}</p>}
       </div>
     );
   }
 
   if (step === 'waiting') {
-    return <div className="p-6 text-center text-lg">Please wait for game to start...</div>;
+    return <div className="p-6">Waiting for game to start...</div>;
   }
 
-  if (!question) return <div className="p-6">Loading question...</div>;
+  if (step === 'finished') {
+    return <div className="p-6">Game Over</div>;
+  }
 
   return (
-    <div className="p-6 max-w-2xl mx-auto bg-white rounded shadow">
+    <div className="p-6 max-w-xl mx-auto">
       <h2 className="text-xl font-bold mb-2">{question.text}</h2>
+      <p className="mb-2 text-sm text-gray-600">Type: {question.type}</p>
+      <p className="mb-4 text-sm">Time Left: {countdown}s</p>
 
-      {question.image && (
-        <img src={question.image} className="mb-4 w-full h-48 object-cover rounded" />
-      )}
+      {question.answers.map((ans) => (
+        <label key={ans.id} className="block mb-2">
+          <input
+            type={question.type === 'multiple' ? 'checkbox' : 'radio'}
+            name="answer"
+            value={ans.id}
+            checked={selectedIds.includes(ans.id)}
+            onChange={() => toggleSelect(ans.id)}
+            disabled={answerAvailable}
+            className="mr-2"
+          />
+          {ans.text} {answerAvailable && correctIds.includes(ans.id) && <span className="text-green-500">✓</span>}
+        </label>
+      ))}
 
-      {question.video && (
-        <iframe
-          src={question.video}
-          className="mb-4 w-full h-48"
-          title="Video"
-          allow="accelerometer; autoplay; encrypted-media; gyroscope"
-        />
-      )}
+      <button
+        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+        disabled={answerAvailable}
+        onClick={submitAnswer}
+      >
+        Submit Answer
+      </button>
 
-      {step === 'playing' && (
-        <div className="mb-4 text-sm text-gray-600">
-          Time remaining: <span className="font-bold">{timeLeft}s</span>
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {question.answers.map((ans) => (
-          <div
-            key={ans.id}
-            className={`p-2 border rounded cursor-pointer ${
-              step === 'answer' && correctAnswers.includes(ans.id)
-                ? 'bg-green-200'
-                : selected.includes(ans.id)
-                ? 'bg-blue-200'
-                : 'bg-white'
-            }`}
-            onClick={() => step === 'playing' && handleSelect(ans.id)}
-          >
-            {ans.text}
-          </div>
-        ))}
-      </div>
-
-      {step === 'answer' && (
-        <div className="mt-4 text-green-700 font-semibold">Correct answer shown in green.</div>
+      {answerAvailable && (
+        <p className="mt-4 text-green-600">Correct answers are shown above.</p>
       )}
     </div>
   );

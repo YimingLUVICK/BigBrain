@@ -7,7 +7,6 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [activeSessions, setActiveSessions] = useState({});
   const [activeSessionPopupIds, setActiveSessionPopupIds] = useState([]);
-  const [resultPromptSessionIds, setResultPromptSessionIds] = useState([]);
 
   const token = localStorage.getItem('token');
   const email = localStorage.getItem('email');
@@ -37,6 +36,8 @@ export default function Dashboard() {
       window.location.hash = '/login';
     } else {
       fetchGames();
+      const interval = setInterval(fetchGames, 3000);
+      return () => clearInterval(interval);
     }
   }, []);
 
@@ -123,9 +124,8 @@ export default function Dashboard() {
         ...JSON.parse(localStorage.getItem('session_game_map') || '{}'),
         [sessionId]: gameId
       }));
-      
+
       setActiveSessionPopupIds((prev) => [...prev, gameId]);
-      setResultPromptSessionIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
     } catch (err) {
       setError('Failed to start session');
@@ -142,7 +142,6 @@ export default function Dashboard() {
         body: JSON.stringify({ mutationType: 'END' }),
       });
 
-      setResultPromptSessionIds((prev) => [...prev, gameId]);
       setActiveSessionPopupIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
     } catch (err) {
@@ -189,7 +188,6 @@ export default function Dashboard() {
           const totalTime = game.questions?.reduce((s, q) => s + (q.time || 0), 0);
           const sessionId = activeSessions[game.id];
           const showStartPopup = activeSessionPopupIds.includes(game.id);
-          const showResultPopup = resultPromptSessionIds.includes(game.id);
 
           return (
             <div
@@ -233,8 +231,7 @@ export default function Dashboard() {
                 Delete Game
               </button>
 
-              {/* Start Popup */}
-              {showStartPopup && (
+              {showStartPopup && sessionId && (
                 <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10 border rounded">
                   <h2 className="text-xl font-bold mb-2">Session Started</h2>
                   <p className="text-sm text-gray-700 mb-2">ID: {sessionId}</p>
@@ -257,27 +254,6 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Stop Result Prompt */}
-              {showResultPopup && (
-                <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10 border rounded">
-                  <h2 className="text-xl font-bold mb-3">Session Stopped</h2>
-                  <p className="mb-2">View results?</p>
-                  <div className="flex space-x-2">
-                    <button
-                      className="bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded"
-                      onClick={() => window.location.hash = `/session/${sessionId}`}
-                    >
-                      Yes
-                    </button>
-                    <button
-                      className="bg-gray-300 hover:bg-gray-400 px-4 py-1 rounded"
-                      onClick={() => setResultPromptSessionIds((prev) => prev.filter(id => id !== game.id))}
-                    >
-                      No
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           );
         })}
