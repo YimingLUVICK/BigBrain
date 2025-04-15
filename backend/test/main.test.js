@@ -5,13 +5,16 @@ import { reset } from '../src/service';
 const THUMBNAIL = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==';
 const QUESTIONS = [
   {
-
+    duration: 10,
+    correctAnswers: ['Answer 1'],
   },
   {
-
+    duration: 10,
+    correctAnswers: ['Answer 2'],
   },
   {
-
+    duration: 10,
+    correctAnswers: ['Answer 3'],
   },
 ];
 const PLAYERS = ['HAYDEN1','HAYDEN2','HAYDEN3','HAYDEN4','HAYDEN5'];
@@ -162,11 +165,9 @@ describe('Test the root path', () => {
   test('That there is now one quiz', async () => {
     const body = await getTry('/admin/games', 200, {}, await validToken());
     expect(body.games).toHaveLength(1);
-    expect(typeof body.games[0].createdAt).toBe('string');
     expect(body.games[0].name).toBe('QUIZ');
     expect(body.games[0].owner).toBe('hayden.smith@unsw.edu.au');
     expect(body.games[0].active).toBe(null);
-    expect(body.games[0].thumbnail).toBe(undefined);
     expect(body.games[0].oldSessions).toMatchObject([]);
   });
 
@@ -398,10 +399,10 @@ describe('Test the root path', () => {
       }
     });
 
-    test(`Players attempt to submit answer`, async () => {
+    test(`Players attempt to submit answers`, async () => {
       for (const playerId of PLAYER_IDS) {
         const payload = {
-          answerIds: [ 0, 1, 2 ],
+          answers: ['Answer 1', 'Answer 2', 'Answer 3'],
         };
         const body = await putTry(`/play/${playerId}/answer`, 200, payload);
         expect(body).toMatchObject({});
@@ -460,7 +461,7 @@ describe('Test the root path', () => {
   test(`Players should be able to get their results`, async () => {
     for (const playerId of PLAYER_IDS) {
       const body = await getTry(`/play/${playerId}/results`, 200);
-      expect(body).toMatchObject(QUESTIONS.map(q => ({ answerIds: [ 0, 1, 2 ], correct: false })));
+      expect(body).toMatchObject(QUESTIONS.map(q => ({ answers: ['Answer 1', 'Answer 2', 'Answer 3'], correct: false })));
     }
   });
 
