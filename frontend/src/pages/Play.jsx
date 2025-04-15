@@ -2,7 +2,7 @@
 import { useEffect, useState, useRef } from 'react';
 
 export default function Play({ sessionId }) {
-  const [step, setStep] = useState('join'); // join | waiting | playing | finished
+  const [step, setStep] = useState('join');
   const [name, setName] = useState('');
   const [playerId, setPlayerId] = useState(null);
   const [question, setQuestion] = useState(null);
@@ -12,41 +12,38 @@ export default function Play({ sessionId }) {
   const [answerAvailable, setAnswerAvailable] = useState(false);
   const [error, setError] = useState('');
   const positionRef = useRef(-1);
-  const [currentPosition, setCurrentPosition] = useState(-1);
 
-  // Check if session started every 2s
+  const fetchSessionPosition = async () => {
+    try {
+      const res = await fetch(`http://localhost:5005/admin/session/${sessionId}/status`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
+      const data = await res.json();
+      return data.results.position;
+    } catch {
+      return -1;
+    }
+  };
+
   useEffect(() => {
     const interval = setInterval(async () => {
       if (!playerId || step !== 'waiting') return;
-      try {
-        const res = await fetch(`http://localhost:5005/play/${playerId}/status`);
-        const data = await res.json();
-        if (data.started) {
-          fetchQuestion(data.position);
-          positionRef.current = data.position;
-        }
-      } catch {}
+      const pos = await fetchSessionPosition();
+      if (pos >= 0) {
+        positionRef.current = pos;
+        fetchQuestion();
+      }
     }, 2000);
     return () => clearInterval(interval);
   }, [playerId, step]);
 
-  // Poll for position changes
   useEffect(() => {
     const interval = setInterval(async () => {
       if (!playerId || step !== 'playing') return;
-      try {
-        const res = await fetch(`http://localhost:5005/play/${playerId}/status`);
-        const data = await res.json();
-        if (data.started) {
-          if (data.position !== positionRef.current) {
-            fetchQuestion(data.position);
-            positionRef.current = data.position;
-          }
-        } else {
-          setStep('finished');
-        }
-      } catch {
-        setStep('finished');
+      const pos = await fetchSessionPosition();
+      if (pos !== positionRef.current) {
+        positionRef.current = pos;
+        fetchQuestion();
       }
     }, 3000);
     return () => clearInterval(interval);
@@ -54,15 +51,11 @@ export default function Play({ sessionId }) {
 
   const join = async () => {
     try {
-      const statusRes = await fetch(`http://localhost:5005/admin/session/${sessionId}/status`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const statusData = await statusRes.json();
-      if (statusData.results.position >= 0) {
+      const pos = await fetchSessionPosition();
+      if (pos >= 0) {
         setError('Game already started. You cannot join.');
         return;
       }
-
       const res = await fetch(`http://localhost:5005/play/join/${sessionId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -76,7 +69,7 @@ export default function Play({ sessionId }) {
     }
   };
 
-  const fetchQuestion = async (pos) => {
+  const fetchQuestion = async () => {
     try {
       const res = await fetch(`http://localhost:5005/play/${playerId}/question`);
       const data = await res.json();
@@ -85,7 +78,6 @@ export default function Play({ sessionId }) {
       setSelectedIds([]);
       setAnswerAvailable(false);
       setCorrectIds([]);
-      setCurrentPosition(pos);
       setStep('playing');
     } catch {
       setStep('finished');
@@ -104,9 +96,15 @@ export default function Play({ sessionId }) {
 
   const fetchCorrect = async () => {
     try {
-      const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
+      const res = await fetch(`http://localhost:5005/admin/session/${sessionId}/status`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      });
       const data = await res.json();
-      setCorrectIds(data.answerIds);
+      const pos = data.results.position;
+      const corrects = data.results.questions[pos].answers
+        .filter(a => a.correct)
+        .map(a => a.id);
+      setCorrectIds(corrects);
       setAnswerAvailable(true);
     } catch {
       setStep('finished');
