@@ -12,6 +12,16 @@ export default function Play({ sessionId }) {
   const [lastStartTime, setLastStartTime] = useState(null);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const played = JSON.parse(localStorage.getItem('played_sessions') || '{}');
+    const existingPlayerId = played[sessionId];
+  
+    if (existingPlayerId) {
+      setPlayerId(parseInt(existingPlayerId));
+      setStep('waiting');
+    }
+  }, [sessionId]);
+
   const join = async () => {
     try {
       const res = await fetch(`http://localhost:5005/play/join/${parseInt(sessionId)}`, {
@@ -22,6 +32,10 @@ export default function Play({ sessionId }) {
       const data = await res.json();
       setPlayerId(data.playerId);
       setStep('waiting');
+
+      const played = JSON.parse(localStorage.getItem('played_sessions') || '{}');
+      played[sessionId] = data.playerId;
+      localStorage.setItem('played_sessions', JSON.stringify(played));
     } catch {
       setError('Failed to join session');
     }
@@ -124,7 +138,7 @@ export default function Play({ sessionId }) {
   }
 
   if (step === 'waiting') {
-    return <div className="p-6">Game not started or ended</div>;
+    return <div className="p-6">"Waiting for the host to start the game..."</div>;
   }
 
   if (!question) {
@@ -149,7 +163,7 @@ export default function Play({ sessionId }) {
             className="mr-2"
           />
           {ans.answer}
-          {correctAnswers.includes(idx) && (
+          {correctAnswers.includes(ans.answer) && (
             <span className="text-green-500 ml-2">✓</span>
           )}
         </label>
