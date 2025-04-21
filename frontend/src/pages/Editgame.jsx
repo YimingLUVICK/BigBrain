@@ -64,11 +64,12 @@ export default function EditGame({ gameId }) {
     const newQ = {
       text: newQuestionText,
       type: 'single',
-      time: 30,
       points: 0,
+      duration: 30,
+      correctAnswers: [],
       answers: [
-        { id: Date.now(), text: '', correct: false },
-        { id: Date.now() + 1, text: '', correct: false }
+        { answer: '' },
+        { answer: '' }
       ],
     };
     const updated = {

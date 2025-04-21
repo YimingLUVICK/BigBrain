@@ -6,7 +6,7 @@ export default function Editquestion({ gameId, questionId }) {
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
 
-  // === Step 1: Fetch the game and specific question ===
+  // === Step 1: Fetch game and question ===
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -19,8 +19,16 @@ export default function Editquestion({ gameId, questionId }) {
         const q = game.questions?.[parseInt(questionId)];
         if (!q) return setError('Question not found');
 
+        const initialAnswers = q.answers?.map(a => a.answer || '') || [];
         setGame(game);
-        setQuestion({ ...q }); // clone to avoid direct mutation
+        setQuestion({
+          ...q,
+          text: q.text || '',
+          type: q.type || 'single',
+          answers: initialAnswers,
+          correctAnswers: q.correctAnswers || [],
+          duration: q.duration || 30,
+        });
       } catch (err) {
         setError('Failed to fetch game data');
       }
@@ -37,8 +45,17 @@ export default function Editquestion({ gameId, questionId }) {
       const data = await res.json();
       const updatedGames = data.games.map((g) => {
         if (g.id.toString() !== gameId) return g;
+
+        const formattedQuestion = {
+          duration: question.duration,
+          correctAnswers: question.correctAnswers,
+          answers: question.answers.map(a => ({ answer: a })),
+          text: question.text,
+          type: question.type,  // ⚠️ 额外字段，用于前端识别用途
+        };
+
         const updatedQuestions = [...g.questions];
-        updatedQuestions[parseInt(questionId)] = question;
+        updatedQuestions[parseInt(questionId)] = formattedQuestion;
         return { ...g, questions: updatedQuestions };
       });
 
@@ -57,41 +74,48 @@ export default function Editquestion({ gameId, questionId }) {
     }
   };
 
-  const updateAnswer = (idx, field, value) => {
-    const updated = [...(question.answers || [])];
-    updated[idx] = {
-      ...updated[idx],
-      [field]: value
-    };
+  const updateAnswer = (idx, value) => {
+    const updated = [...question.answers];
+    updated[idx] = value;
     setQuestion({ ...question, answers: updated });
+  };
+
+  const toggleCorrectAnswer = (value) => {
+    if (question.type === 'single') {
+      setQuestion({
+        ...question,
+        correctAnswers: [value],
+      });
+    } else {
+      const current = question.correctAnswers || [];
+      if (current.includes(value)) {
+        setQuestion({
+          ...question,
+          correctAnswers: current.filter(ans => ans !== value),
+        });
+      } else {
+        setQuestion({
+          ...question,
+          correctAnswers: [...current, value],
+        });
+      }
+    }
   };
 
   const addAnswer = () => {
     if ((question.answers || []).length >= 6) return;
-    const newAnswer = {
-      id: Date.now(), 
-      text: '',
-      correct: false,
-    };
     setQuestion({
       ...question,
-      answers: [...(question.answers || []), newAnswer],
+      answers: [...question.answers, '']
     });
   };
 
   const removeAnswer = (idx) => {
-    const updated = [...(question.answers || [])];
+    const removed = question.answers[idx];
+    const updated = [...question.answers];
     updated.splice(idx, 1);
-    setQuestion({ ...question, answers: updated });
-  };
-
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setQuestion({ ...question, image: reader.result });
-    };
-    reader.readAsDataURL(file);
+    const updatedCorrect = (question.correctAnswers || []).filter(ans => ans !== removed);
+    setQuestion({ ...question, answers: updated, correctAnswers: updatedCorrect });
   };
 
   if (error) return <div className="p-6 text-red-500">{error}</div>;
@@ -102,7 +126,7 @@ export default function Editquestion({ gameId, questionId }) {
       <h1 className="text-2xl font-bold mb-4">Edit Question</h1>
 
       {/* Question Text */}
-      <label className="block mb-2 font-semibold">Question</label>
+      <label className="block mb-2 font-semibold">Question Text</label>
       <input
         type="text"
         className="w-full p-2 border rounded mb-4"
@@ -110,92 +134,58 @@ export default function Editquestion({ gameId, questionId }) {
         onChange={(e) => setQuestion({ ...question, text: e.target.value })}
       />
 
-      {/* Type */}
+      {/* Question Type */}
       <label className="block mb-2 font-semibold">Question Type</label>
       <select
         className="w-full p-2 border rounded mb-4"
-        value={question.type || 'single'}
-        onChange={(e) => setQuestion({ ...question, type: e.target.value })}
+        value={question.type}
+        onChange={(e) => {
+          const newType = e.target.value;
+          const updated = { ...question, type: newType };
+          // 强制处理 correctAnswers 在类型转换时保持一致性
+          if (newType === 'single' && question.correctAnswers.length > 1) {
+            updated.correctAnswers = question.correctAnswers.slice(0, 1);
+          }
+          setQuestion(updated);
+        }}
       >
         <option value="single">Single Choice</option>
         <option value="multiple">Multiple Choice</option>
         <option value="judgement">Judgement</option>
       </select>
 
-      {/* Time + Points */}
-      <div className="flex gap-4 mb-4">
-        <div className="flex-1">
-          <label className="block font-semibold">Time Limit (sec)</label>
-          <input
-            type="number"
-            className="w-full p-2 border rounded"
-            value={question.time || 30}
-            onChange={(e) => setQuestion({ ...question, time: parseInt(e.target.value) })}
-          />
-        </div>
-        <div className="flex-1">
-          <label className="block font-semibold">Points</label>
-          <input
-            type="number"
-            className="w-full p-2 border rounded"
-            value={question.points || 0}
-            onChange={(e) => setQuestion({ ...question, points: parseInt(e.target.value) })}
-          />
-        </div>
-      </div>
-
-      {/* YouTube Link */}
-      <label className="block mb-2 font-semibold">YouTube Video URL (optional)</label>
+      {/* Time */}
+      <label className="block font-semibold">Time Limit (seconds)</label>
       <input
-        type="text"
+        type="number"
         className="w-full p-2 border rounded mb-4"
-        value={question.video || ''}
-        onChange={(e) => setQuestion({ ...question, video: e.target.value })}
+        value={question.duration}
+        onChange={(e) => setQuestion({ ...question, duration: parseInt(e.target.value) })}
       />
-
-      {/* Image Upload */}
-      <label className="block mb-2 font-semibold">Upload Image (optional)</label>
-      <input
-        type="file"
-        accept="image/*"
-        className="mb-4"
-        onChange={handleFileUpload}
-      />
-      {question.image && (
-        <img src={question.image} alt="Question" className="mb-4 rounded w-full h-48 object-cover" />
-      )}
 
       {/* Answers */}
-      <label className="block mb-2 font-semibold">Answers (2 to 6)</label>
-      {(question.answers || []).map((ans, idx) => (
+      <label className="block font-semibold mb-2">Answers (max 6)</label>
+      {question.answers.map((ans, idx) => (
         <div key={idx} className="flex items-center space-x-2 mb-2">
           <input
             type="text"
-            value={ans.text}
-            onChange={(e) => updateAnswer(idx, 'text', e.target.value)}
             className="flex-1 p-2 border rounded"
             placeholder={`Answer ${idx + 1}`}
+            value={ans}
+            onChange={(e) => updateAnswer(idx, e.target.value)}
           />
           {question.type === 'single' ? (
             <input
               type="radio"
               name="correctSingle"
-              checked={ans.correct}
-              onChange={() =>
-                setQuestion({
-                  ...question,
-                  answers: question.answers.map((a, i) => ({
-                    ...a,
-                    correct: i === idx,
-                  })),
-                })
-              }
+              checked={question.correctAnswers[0] === ans}
+              onChange={() => toggleCorrectAnswer(ans)}
             />
           ) : (
             <input
               type="checkbox"
-              checked={ans.correct}
-              onChange={(e) => updateAnswer(idx, 'correct', e.target.checked)}
+              checked={question.correctAnswers.includes(ans)}
+              onChange={() => toggleCorrectAnswer(ans)}
             />
           )}
           <button
@@ -206,7 +196,7 @@ export default function Editquestion({ gameId, questionId }) {
           </button>
         </div>
       ))}
-      {question.answers?.length < 6 && (
+      {question.answers.length < 6 && (
         <button
           onClick={addAnswer}
           className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mb-4"
@@ -215,7 +205,6 @@ export default function Editquestion({ gameId, questionId }) {
         </button>
       )}
 
-      {/* Save Button */}
       <button
         onClick={save}
         className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
