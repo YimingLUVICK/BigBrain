@@ -109,22 +109,44 @@ export default function EditGame({ gameId }) {
         />
       </div>
 
-      {/* Thumbnail */}
+      {/* Thumbnail Upload */}
       <div className="mb-4">
-        <label className="block font-semibold mb-1">Thumbnail URL</label>
+        <label className="block font-semibold mb-1">Upload Thumbnail</label>
         <input
-          className="p-2 border rounded w-full"
-          value={game.thumbnail || ''}
-          onChange={(e) => handleMetaUpdate('thumbnail', e.target.value)}
+          type="file"
+          accept="image/*"
+          onChange={(e) => {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              handleMetaUpdate('thumbnail', reader.result);
+            };
+            if (file) reader.readAsDataURL(file);
+          }}
+          className="mb-2"
         />
-        {game.thumbnail && (
-          <img
-            src={game.thumbnail}
-            alt="Thumbnail"
-            className="mt-2 h-32 object-cover rounded"
-          />
+
+        {game.thumbnail ? (
+          <div className="relative mt-2">
+            <img
+              src={game.thumbnail}
+              alt="Thumbnail Preview"
+              className="h-32 w-full object-cover rounded"
+            />
+            <button
+              onClick={() => handleMetaUpdate('thumbnail', '')}
+              className="absolute top-1 right-1 bg-red-500 hover:bg-red-600 text-white px-2 py-1 text-xs rounded"
+            >
+              Remove
+            </button>
+          </div>
+        ) : (
+          <div className="h-32 bg-gray-200 flex items-center justify-center text-gray-500 rounded mt-2">
+            No thumbnail
+          </div>
         )}
       </div>
+
 
       {/* Questions */}
       <h2 className="text-xl font-bold mb-2">Questions</h2>

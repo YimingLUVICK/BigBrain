@@ -164,7 +164,7 @@ export default function Editquestion({ gameId, questionId }) {
       />
 
       {/* Answers */}
-      <label className="block font-semibold mb-2">Answers (max 6)</label>
+      <label className="block font-semibold mb-2">Answers (from 2 to 6)</label>
       {question.answers.map((ans, idx) => (
         <div key={idx} className="flex items-center space-x-2 mb-2">
           <input
