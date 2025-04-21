@@ -105,8 +105,17 @@ export default function Sessioncontrol({ sessionId }) {
   if (!status) return <div className="p-6">Loading session...</div>;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto bg-white rounded shadow">
-      <h1 className="text-2xl font-bold mb-4">Session Control: {sessionId}</h1>
+    <div className="p-6 max-w-4xl mx-auto bg-white rounded shadow relative">
+      <div className="flex justify-between items-start mb-4">
+        <h1 className="text-2xl font-bold">Session Control: {sessionId}</h1>
+        <button
+          onClick={() => { window.location.hash = '#/dashboard'; }}
+          className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-4 py-1 rounded text-sm"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+
       <p>Status: {status.active ? '🟢 Active' : '🔴 Finished'}</p>
       <p>Current position: {status.position}</p>
       <p>Time remaining: {countdown !== null ? `${countdown}s` : '-'}</p>
