@@ -28,6 +28,7 @@ export default function Editquestion({ gameId, questionId }) {
           answers: initialAnswers,
           correctAnswers: q.correctAnswers || [],
           duration: q.duration || 30,
+          points: q.points ?? 0,
         });
       } catch (err) {
         setError('Failed to fetch game data');
@@ -52,6 +53,7 @@ export default function Editquestion({ gameId, questionId }) {
           answers: question.answers.map(a => ({ answer: a })),
           text: question.text,
           type: question.type,  // ⚠️ 额外字段，用于前端识别用途
+          points: question.points || 0,
         };
 
         const updatedQuestions = [...g.questions];
@@ -161,6 +163,17 @@ export default function Editquestion({ gameId, questionId }) {
         className="w-full p-2 border rounded mb-4"
         value={question.duration}
         onChange={(e) => setQuestion({ ...question, duration: parseInt(e.target.value) })}
+      />
+
+      {/* Points */}
+      <label className="block font-semibold">Points</label>
+      <input
+        type="number"
+        className="w-full p-2 border rounded mb-4"
+        value={question.points}
+        onChange={(e) =>
+          setQuestion({ ...question, points: parseInt(e.target.value) || 0 })
+        }
       />
 
       {/* Answers */}

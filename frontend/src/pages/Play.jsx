@@ -48,7 +48,6 @@ export default function Play({ sessionId }) {
       const data = await res.json();
       const q = data.question;
 
-      // 检测是否为新问题（时间戳变化）
       if (q.isoTimeLastQuestionStarted !== lastStartTime) {
         setQuestion(q);
         setCountdown(q.duration);
@@ -60,7 +59,6 @@ export default function Play({ sessionId }) {
     return () => clearInterval(interval);
   }, [step, playerId, lastStartTime]);
 
-  // 倒计时逻辑
   useEffect(() => {
     if (countdown === null || countdown <= 0 || correctAnswers.length > 0) return;
 
@@ -79,7 +77,7 @@ export default function Play({ sessionId }) {
     try {
       const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
       const data = await res.json();
-      setCorrectAnswers(data.answers); // ✅ 正确字段名
+      setCorrectAnswers(data.answers); 
     } catch {}
   };
 
@@ -88,7 +86,7 @@ export default function Play({ sessionId }) {
       await fetch(`http://localhost:5005/play/${playerId}/answer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: selectedAnswers }) // ✅ 正确字段名
+        body: JSON.stringify({ answers: selectedAnswers }) 
       });
     } catch {}
   };
@@ -103,7 +101,7 @@ export default function Play({ sessionId }) {
     }
   };
 
-  // UI 渲染部分
+  
   if (step === 'join') {
     return (
       <div className="p-6 max-w-xl mx-auto">
