@@ -46,3 +46,36 @@ export default function Play({ sessionId }) {
     return () => clearInterval(interval);
   }, [playerId]);
 
+  useEffect(() => {
+    if (step !== 'playing' || !playerId) return;
+    const interval = setInterval(async () => {
+      const res = await fetch(`http://localhost:5005/play/${playerId}/question`);
+      const data = await res.json();
+      const q = data.question;
+
+      // 检测是否为新问题（时间戳变化）
+      if (q.isoTimeLastQuestionStarted !== lastStartTime) {
+        setQuestion(q);
+        setCountdown(q.duration);
+        setSelectedAnswers([]);
+        setCorrectAnswers([]);
+        setLastStartTime(q.isoTimeLastQuestionStarted);
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [step, playerId, lastStartTime]);
+
+  // 倒计时逻辑
+  useEffect(() => {
+    if (countdown === null || countdown <= 0 || correctAnswers.length > 0) return;
+
+    const timer = setTimeout(() => {
+      setCountdown(prev => prev - 1);
+    }, 1000);
+
+    if (countdown === 1) {
+      fetchCorrectAnswers();
+    }
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
