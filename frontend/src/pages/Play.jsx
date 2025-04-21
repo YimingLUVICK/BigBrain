@@ -61,17 +61,17 @@ export default function Play({ sessionId }) {
 
   useEffect(() => {
     if (countdown === null || countdown <= 0 || correctAnswers.length > 0) return;
-
+  
     const timer = setTimeout(() => {
+      if (countdown === 1) {
+        fetchCorrectAnswers();
+      }
       setCountdown(prev => prev - 1);
     }, 1000);
-
-    if (countdown === 1) {
-      fetchCorrectAnswers();
-    }
-
+  
     return () => clearTimeout(timer);
   }, [countdown]);
+
 
   const fetchCorrectAnswers = async () => {
     try {
@@ -81,27 +81,30 @@ export default function Play({ sessionId }) {
     } catch {}
   };
 
-  const submitAnswer = async () => {
+  const submitAnswer = async (answersToSubmit = selectedAnswers) => {
     try {
       await fetch(`http://localhost:5005/play/${playerId}/answer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: selectedAnswers }) 
+        body: JSON.stringify({ answers: answersToSubmit })
       });
     } catch {}
   };
 
-  const toggleSelect = (ansText) => {
-    if (question.type === 'single' || question.type === 'judgement') {
-      setSelectedAnswers([ansText]);
+  const toggleSelect = (idx) => {
+    let updated;
+  
+    if (question.type === 'single' || question.type === 'judgement' || question.type === 'truefalse') {
+      updated = [idx];
     } else {
-      setSelectedAnswers(prev =>
-        prev.includes(ansText) ? prev.filter(a => a !== ansText) : [...prev, ansText]
-      );
+      updated = selectedAnswers.includes(idx)
+        ? selectedAnswers.filter(i => i !== idx)
+        : [...selectedAnswers, idx];
     }
+    setSelectedAnswers(updated);
+    submitAnswer(updated);
   };
 
-  
   if (step === 'join') {
     return (
       <div className="p-6 max-w-xl mx-auto">
@@ -139,30 +142,22 @@ export default function Play({ sessionId }) {
           <input
             type={question.type === 'multiple' ? 'checkbox' : 'radio'}
             name="answer"
-            value={ans.answer}
-            checked={selectedAnswers.includes(ans.answer)}
+            value={idx}
+            checked={selectedAnswers.includes(idx)}
             disabled={correctAnswers.length > 0}
-            onChange={() => toggleSelect(ans.answer)}
+            onChange={() => toggleSelect(idx)}
             className="mr-2"
           />
           {ans.answer}
-          {correctAnswers.includes(ans.answer) && (
+          {correctAnswers.includes(idx) && (
             <span className="text-green-500 ml-2">✓</span>
           )}
         </label>
       ))}
 
-      <button
-        onClick={submitAnswer}
-        disabled={correctAnswers.length > 0}
-        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
-      >
-        Submit Answer
-      </button>
-
       {correctAnswers.length > 0 && (
         <p className="mt-4 text-green-600">Correct answers shown above.</p>
       )}
     </div>
-  );
+  );  
 }
