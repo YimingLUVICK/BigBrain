@@ -6,6 +6,7 @@ import Editgame from './pages/Editgame';
 import Editquestion from './pages/Editquestion';
 import Sessioncontrol from './pages/Sessioncontrol';
 import Play from './pages/Play';
+import PastSessions from './pages/PastSessions';
 
 function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
@@ -28,6 +29,9 @@ function App() {
   } else if (route.startsWith('/session/')) {
     const sessionId = route.split('/')[2];
     Page = <Sessioncontrol sessionId={sessionId} />;
+  } else if (route.startsWith('/game/') && route.endsWith('/sessions')) {
+    const gameId = route.split('/')[2];
+    Page = <PastSessions gameId={gameId} />;  
   } else if (route.startsWith('/game/') && route.includes('/question/')) {
     // ✅ 支持路径：/#/game/{gameId}/question/{questionId}
     const parts = route.split('/');

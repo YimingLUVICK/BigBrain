@@ -224,6 +224,21 @@ export default function Dashboard() {
                 </button>
               )}
 
+              <div className="flex space-x-2 mt-2">
+                <button
+                  className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1 rounded text-sm"
+                  onClick={() => window.location.hash = `/game/${game.id}`}
+                >
+                  Edit
+                </button>
+                <button
+                  className="flex-1 bg-gray-400 hover:bg-gray-500 text-white py-1 rounded text-sm"
+                  onClick={() => window.location.hash = `/game/${game.id}/sessions`}
+                >
+                  Past Sessions
+                </button>
+              </div>
+
               <button
                 className="mt-2 w-full bg-red-400 hover:bg-red-500 text-white py-1 rounded text-sm"
                 onClick={() => handleDelete(game.id)}
