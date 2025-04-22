@@ -143,11 +143,16 @@ export default function Editquestion({ gameId, questionId }) {
         value={question.type}
         onChange={(e) => {
           const newType = e.target.value;
-          const updated = { ...question, type: newType };
-          // 强制处理 correctAnswers 在类型转换时保持一致性
+          let updated = { ...question, type: newType };
           if (newType === 'single' && question.correctAnswers.length > 1) {
             updated.correctAnswers = question.correctAnswers.slice(0, 1);
           }
+
+          if (newType === 'judgement') {
+            updated.answers = ['True', 'False'];
+            updated.correctAnswers = [];
+          }
+
           setQuestion(updated);
         }}
       >
@@ -156,7 +161,6 @@ export default function Editquestion({ gameId, questionId }) {
         <option value="judgement">Judgement</option>
       </select>
 
-      {/* Time */}
       <label className="block font-semibold">Time Limit (seconds)</label>
       <input
         type="number"
@@ -165,7 +169,6 @@ export default function Editquestion({ gameId, questionId }) {
         onChange={(e) => setQuestion({ ...question, duration: parseInt(e.target.value) })}
       />
 
-      {/* Points */}
       <label className="block font-semibold">Points</label>
       <input
         type="number"
@@ -176,7 +179,6 @@ export default function Editquestion({ gameId, questionId }) {
         }
       />
 
-      {/* Answers */}
       <label className="block font-semibold mb-2">Answers (from 2 to 6)</label>
       {question.answers.map((ans, idx) => (
         <div key={idx} className="flex items-center space-x-2 mb-2">
@@ -187,7 +189,7 @@ export default function Editquestion({ gameId, questionId }) {
             value={ans}
             onChange={(e) => updateAnswer(idx, e.target.value)}
           />
-          {question.type === 'single' ? (
+          {question.type === 'single' || question.type === 'judgement' ? (
             <input
               type="radio"
               name="correctSingle"
@@ -201,15 +203,17 @@ export default function Editquestion({ gameId, questionId }) {
               onChange={() => toggleCorrectAnswer(ans)}
             />
           )}
-          <button
-            onClick={() => removeAnswer(idx)}
-            className="text-sm bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded"
-          >
-            Delete
-          </button>
+          {question.type !== 'judgement' && (
+            <button
+              onClick={() => removeAnswer(idx)}
+              className="text-sm bg-red-400 hover:bg-red-500 text-white px-2 py-1 rounded"
+            >
+              Delete
+            </button>
+          )}
         </div>
       ))}
-      {question.answers.length < 6 && (
+      {question.type !== 'judgement' && question.answers.length < 6 && (
         <button
           onClick={addAnswer}
           className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded mb-4"
