@@ -13,9 +13,17 @@ export default function Play({ sessionId }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setPlayerId(null);
+    setName('');
+    setQuestion(null);
+    setCountdown(null);
+    setSelectedAnswers([]);
+    setCorrectAnswers([]);
+    setLastStartTime(null);
+    setStep('join');
+
     const played = JSON.parse(localStorage.getItem('played_sessions') || '{}');
     const existingPlayerId = played[sessionId];
-  
     if (existingPlayerId) {
       setPlayerId(parseInt(existingPlayerId));
       setStep('waiting');
@@ -42,7 +50,7 @@ export default function Play({ sessionId }) {
   };
 
   useEffect(() => {
-    if (!playerId) return;
+    if (!playerId || step === 'finished') return;
     const interval = setInterval(async () => {
       const res = await fetch(`http://localhost:5005/play/${playerId}/status`);
       const data = await res.json();
@@ -53,7 +61,7 @@ export default function Play({ sessionId }) {
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [playerId]);
+  }, [playerId, step]);
 
   useEffect(() => {
     if (step !== 'playing' || !playerId) return;
@@ -74,24 +82,39 @@ export default function Play({ sessionId }) {
   }, [step, playerId, lastStartTime]);
 
   useEffect(() => {
+    if (!playerId || step === 'finished') return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`http://localhost:5005/play/${playerId}/results`);
+
+        if (res.ok) {
+          const results = await res.json();
+          const storedResults = JSON.parse(localStorage.getItem('player_results') || '{}');
+          storedResults[sessionId] = results;
+          localStorage.setItem('player_results', JSON.stringify(storedResults));
+          setStep('finished');
+        }
+      } catch (err) {}
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [playerId, step, sessionId]);
+
+  useEffect(() => {
     if (countdown === null || countdown <= 0 || correctAnswers.length > 0) return;
-  
     const timer = setTimeout(() => {
-      if (countdown === 1) {
-        fetchCorrectAnswers();
-      }
+      if (countdown === 1) fetchCorrectAnswers();
       setCountdown(prev => prev - 1);
     }, 1000);
-  
     return () => clearTimeout(timer);
   }, [countdown]);
-
 
   const fetchCorrectAnswers = async () => {
     try {
       const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
       const data = await res.json();
-      setCorrectAnswers(data.answers); 
+      setCorrectAnswers(data.answers);
     } catch {}
   };
 
@@ -107,7 +130,6 @@ export default function Play({ sessionId }) {
 
   const toggleSelect = (idx) => {
     let updated;
-  
     if (question.type === 'single' || question.type === 'judgement' || question.type === 'truefalse') {
       updated = [idx];
     } else {
@@ -139,6 +161,10 @@ export default function Play({ sessionId }) {
 
   if (step === 'waiting') {
     return <div className="p-6">"Waiting for the host to start the game..."</div>;
+  }
+
+  if (step === 'finished') {
+    return <div className="p-6 text-center">🎉 Game Over! Thanks for playing.</div>;
   }
 
   if (!question) {
@@ -173,5 +199,5 @@ export default function Play({ sessionId }) {
         <p className="mt-4 text-green-600">Correct answers shown above.</p>
       )}
     </div>
-  );  
+  );
 }
