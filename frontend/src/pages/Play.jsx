@@ -11,6 +11,7 @@ export default function Play({ sessionId }) {
   const [correctAnswers, setCorrectAnswers] = useState([]);
   const [lastStartTime, setLastStartTime] = useState(null);
   const [error, setError] = useState('');
+  const [results, setResults] = useState([]);
 
   useEffect(() => {
     setPlayerId(null);
@@ -81,6 +82,22 @@ export default function Play({ sessionId }) {
     return () => clearInterval(interval);
   }, [step, playerId, lastStartTime]);
 
+  const formatResults = (rawAnswers) => {
+    return rawAnswers.map((entry, idx) => {
+      const timeTaken = entry.answeredAt && entry.questionStartedAt
+        ? (new Date(entry.answeredAt) - new Date(entry.questionStartedAt)) / 1000
+        : null;
+  
+      return {
+        question: idx + 1,
+        correct: !!entry.correct,
+        score: entry.correct ? 1 : 0,
+        timeTaken: timeTaken !== null ? timeTaken.toFixed(1) : null,
+        answers: entry.answers || []
+      };
+    });
+  };
+
   useEffect(() => {
     if (!playerId || step === 'finished') return;
 
@@ -89,11 +106,12 @@ export default function Play({ sessionId }) {
         const res = await fetch(`http://localhost:5005/play/${playerId}/results`);
 
         if (res.ok) {
-          const results = await res.json();
+          const data = await res.json();
           const storedResults = JSON.parse(localStorage.getItem('player_results') || '{}');
-          storedResults[sessionId] = results;
+          storedResults[sessionId] = data;
           localStorage.setItem('player_results', JSON.stringify(storedResults));
           setStep('finished');
+          setResults(formatResults(data));
         }
       } catch (err) {}
     }, 3000);
@@ -130,7 +148,7 @@ export default function Play({ sessionId }) {
 
   const toggleSelect = (idx) => {
     let updated;
-    if (question.type === 'single' || question.type === 'judgement' || question.type === 'truefalse') {
+    if (question.type === 'single' || question.type === 'judgement') {
       updated = [idx];
     } else {
       updated = selectedAnswers.includes(idx)
@@ -164,8 +182,38 @@ export default function Play({ sessionId }) {
   }
 
   if (step === 'finished') {
-    return <div className="p-6 text-center">🎉 Game Over! Thanks for playing.</div>;
-  }
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <h2 className="text-2xl font-bold mb-4 text-center">🎉 Game Over! Here's how you did:</h2>
+        {results.length === 0 ? (
+          <p className="text-center text-gray-600">No result data found.</p>
+        ) : (
+          <table className="table-auto w-full border">
+            <thead className="bg-gray-100">
+              <tr>
+                <th className="px-4 py-2 text-left">Question</th>
+                <th className="px-4 py-2 text-center">Correct</th>
+                <th className="px-4 py-2 text-center">Points</th>
+                <th className="px-4 py-2 text-center">Time Taken (s)</th>
+                <th className="px-4 py-2 text-left">Your Answers</th>
+              </tr>
+            </thead>
+            <tbody>
+              {results.map((res, idx) => (
+                <tr key={idx} className="border-t">
+                  <td className="px-4 py-2">Q{res.question}</td>
+                  <td className="px-4 py-2 text-center">{res.correct ? '✅' : '❌'}</td>
+                  <td className="px-4 py-2 text-center">{res.score}</td>
+                  <td className="px-4 py-2 text-center">{res.timeTaken ?? '-'}</td>
+                  <td className="px-4 py-2">{res.answers?.join(', ') || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    );
+  } 
 
   if (!question) {
     return <div className="p-6">Loading question...</div>;
