@@ -26,7 +26,7 @@ export default function Dashboard() {
         }
       }
       setActiveSessions(active);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch games');
     }
   };
@@ -127,7 +127,7 @@ export default function Dashboard() {
 
       setActiveSessionPopupIds((prev) => [...prev, gameId]);
       await fetchGames();
-    } catch (err) {
+    } catch {
       setError('Failed to start session');
     }
   };
@@ -144,7 +144,7 @@ export default function Dashboard() {
 
       setActiveSessionPopupIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
-    } catch (err) {
+    } catch {
       setError('Failed to stop session');
     }
   };

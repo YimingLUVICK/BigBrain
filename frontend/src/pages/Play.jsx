@@ -113,7 +113,9 @@ export default function Play({ sessionId }) {
           setStep('finished');
           setResults(formatResults(data));
         }
-      } catch (err) {}
+      } catch {
+        setError("Couldn't fetch results")
+      }
     }, 3000);
 
     return () => clearInterval(interval);
@@ -133,7 +135,9 @@ export default function Play({ sessionId }) {
       const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
       const data = await res.json();
       setCorrectAnswers(data.answers);
-    } catch {}
+    } catch {
+      setError("Couldn't fetch answers")
+    }
   };
 
   const submitAnswer = async (answersToSubmit = selectedAnswers) => {
@@ -143,7 +147,9 @@ export default function Play({ sessionId }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ answers: answersToSubmit })
       });
-    } catch {}
+    } catch {
+      setError("Couldnt submit answers")
+    }
   };
 
   const toggleSelect = (idx) => {
@@ -178,13 +184,11 @@ export default function Play({ sessionId }) {
   }
 
   if (step === 'waiting') {
-    return <div className="p-6">"Waiting for the host to start the game..."</div>;
-  }
-
-  if (step === 'finished') {
+    return <div className="p-6">Waiting for the host to start the game...</div>;
+  } else if (step === 'finished') {
     return (
       <div className="p-6 max-w-2xl mx-auto">
-        <h2 className="text-2xl font-bold mb-4 text-center">🎉 Game Over! Here's how you did:</h2>
+        <h2 className="text-2xl font-bold mb-4 text-center">🎉 Game Over! Here is how you did:</h2>
         {results.length === 0 ? (
           <p className="text-center text-gray-600">No result data found.</p>
         ) : (

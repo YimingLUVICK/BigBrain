@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 
 export default function Editquestion({ gameId, questionId }) {
-  const [game, setGame] = useState(null);
   const [question, setQuestion] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
@@ -20,7 +19,6 @@ export default function Editquestion({ gameId, questionId }) {
         if (!q) return setError('Question not found');
 
         const initialAnswers = q.answers?.map(a => a.answer || '') || [];
-        setGame(game);
         setQuestion({
           ...q,
           text: q.text || '',
@@ -30,7 +28,7 @@ export default function Editquestion({ gameId, questionId }) {
           duration: q.duration || 30,
           points: q.points ?? 0,
         });
-      } catch (err) {
+      } catch {
         setError('Failed to fetch game data');
       }
     };
@@ -71,7 +69,7 @@ export default function Editquestion({ gameId, questionId }) {
       });
 
       window.location.hash = `/game/${gameId}`;
-    } catch (err) {
+    } catch {
       setError('Failed to save question');
     }
   };

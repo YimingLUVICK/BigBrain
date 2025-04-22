@@ -6,9 +6,10 @@ export default function Sessioncontrol({ sessionId }) {
   const [status, setStatus] = useState(null);
   const [results, setResults] = useState(null);
   const [gameId, setGameId] = useState(null);
-  const [countdown, setCountdown] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
+
+  const countdown = null;
 
   const fetchStatus = async () => {
     try {
@@ -17,7 +18,7 @@ export default function Sessioncontrol({ sessionId }) {
       });
       const data = await res.json();
       setStatus(data.results);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to fetch session status');
     }
   };
@@ -29,14 +30,14 @@ export default function Sessioncontrol({ sessionId }) {
       });
       const data = await res.json();
       setResults(data.results);
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to fetch results');
     }
   };
 
   const handleAdvance = async () => {
     try {
-      const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
+      await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -45,14 +46,14 @@ export default function Sessioncontrol({ sessionId }) {
         body: JSON.stringify({ mutationType: 'ADVANCE' }),
       });
       await fetchStatus();
-    } catch (err) {
+    } catch (__err) {
       setError('Failed to advance');
     }
   };
 
   const handleStop = async () => {
     try {
-      const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
+      await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ export default function Sessioncontrol({ sessionId }) {
       });
       await fetchStatus();
       await fetchResults();
-    } catch (err) {
+    } catch (_err) {
       setError('Failed to stop game');
     }
   };

@@ -16,7 +16,7 @@ export default function PastSessions({ gameId }) {
 
       const inactiveSessions = game.oldSessions || [];
       setSessions(inactiveSessions);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch past sessions');
     }
   };

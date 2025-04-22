@@ -20,7 +20,7 @@ export default function EditGame({ gameId }) {
         } else {
           setGame(target);
         }
-      } catch (err) {
+      } catch {
         setError('Failed to fetch game');
       }
     };
@@ -48,7 +48,7 @@ export default function EditGame({ gameId }) {
       });
 
       setGame(updatedGame);
-    } catch (err) {
+    } catch {
       setError('Failed to update game');
     }
   };
