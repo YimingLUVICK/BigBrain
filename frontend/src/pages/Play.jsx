@@ -142,15 +142,19 @@ export default function Play({ sessionId }) {
 
   const submitAnswer = async (answersToSubmit = selectedAnswers) => {
     try {
+      const answersAsValues = answersToSubmit.map(
+        (idx) => question.answers[idx].answer
+      );
+  
       await fetch(`http://localhost:5005/play/${playerId}/answer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers: answersToSubmit })
+        body: JSON.stringify({ answers: answersAsValues }),
       });
     } catch {
-      setError("Couldnt submit answers")
+      setError("Couldn't submit answers");
     }
-  };
+  };  
 
   const toggleSelect = (idx) => {
     let updated;
