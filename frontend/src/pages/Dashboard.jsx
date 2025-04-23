@@ -241,7 +241,7 @@ export default function Dashboard() {
               >
                 <h2 className="text-xl font-bold">{game.name}</h2>
                 <p className="text-sm text-gray-600">
-                  {questionCount} questions | {totalTime} sec
+                  {questionCount} questions
                 </p>
                 <p className="text-sm mt-1">Created by: {game.owner}</p>
                 <p className="text-sm">
