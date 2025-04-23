@@ -7,6 +7,7 @@ export default function Dashboard() {
   const [error, setError] = useState('');
   const [activeSessions, setActiveSessions] = useState({});
   const [activeSessionPopupIds, setActiveSessionPopupIds] = useState([]);
+  const [uploadFile, setUploadFile] = useState(null);
 
   const token = localStorage.getItem('token');
   const email = localStorage.getItem('email');
@@ -149,6 +150,48 @@ export default function Dashboard() {
     }
   };
 
+  const validateGameFile = (game) => {
+    if (!game.name || !Array.isArray(game.questions)) return false;
+    return game.questions.every(q =>
+      q.text && Array.isArray(q.answers) &&
+      Array.isArray(q.correctAnswers) &&
+      ['single', 'multiple', 'judgement'].includes(q.type) &&
+      typeof q.duration === 'number' &&
+      typeof q.points === 'number'
+    );
+  };
+
+  const handleUpload = async () => {
+    if (!uploadFile) return;
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const content = JSON.parse(e.target.result);
+        if (!validateGameFile(content)) throw new Error('Invalid game file format');
+        const res = await fetch('http://localhost:5005/admin/games', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        const newId = Date.now();
+        const updatedGames = [
+          ...data.games,
+          { ...content, id: newId, owner: email }
+        ];
+        await fetch('http://localhost:5005/admin/games', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ games: updatedGames }),
+        });
+        setUploadFile(null);
+        await fetchGames();
+      } catch (err) {
+        setError(err.message || 'Failed to upload game');
+      }
+    };
+    reader.readAsText(uploadFile);
+  };
+
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="flex justify-between items-center mb-4">
@@ -166,20 +209,40 @@ export default function Dashboard() {
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
-      <div className="mb-6 flex space-x-2">
-        <input
-          className="p-2 border rounded w-64"
-          type="text"
-          placeholder="New game name"
-          value={newGameName}
-          onChange={(e) => setNewGameName(e.target.value)}
-        />
-        <button
-          onClick={handleCreate}
-          className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-        >
-          Create Game
-        </button>
+      <div className="mb-6 flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
+
+        {/* Create Empty Game Section */}
+        <div className="flex space-x-2 items-center">
+          <input
+            className="p-2 border rounded w-64"
+            type="text"
+            placeholder="New game name"
+            value={newGameName}
+            onChange={(e) => setNewGameName(e.target.value)}
+          />
+          <button
+            onClick={handleCreate}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Create Empty Game
+          </button>
+        </div>
+
+        {/* Upload Game File Section */}
+        <div className="flex space-x-2 items-center">
+          <input
+            type="file"
+            accept=".json"
+            onChange={(e) => setUploadFile(e.target.files[0])}
+            className="p-2 border rounded"
+          />
+          <button
+            onClick={handleUpload}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Upload Game File
+          </button>
+        </div>
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
