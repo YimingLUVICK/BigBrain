@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 
 export default function Editquestion({ gameId, questionId }) {
+  // === State ===
   const [question, setQuestion] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
 
-  // === Step 1: Fetch game and question ===
+  // === Effect: Fetch game and question data ===
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -15,10 +16,12 @@ export default function Editquestion({ gameId, questionId }) {
         const data = await res.json();
         const game = data.games.find((g) => g.id.toString() === gameId);
         if (!game) return setError('Game not found');
+
         const q = game.questions?.[parseInt(questionId)];
         if (!q) return setError('Question not found');
 
-        const initialAnswers = q.answers?.map(a => a.answer || '') || [];
+        // Prepare initial state for editing
+        const initialAnswers = q.answers?.map((a) => a.answer || '') || [];
         setQuestion({
           ...q,
           text: q.text || '',
@@ -35,22 +38,23 @@ export default function Editquestion({ gameId, questionId }) {
     fetchData();
   }, [gameId, questionId]);
 
-  // === Step 2: Save updated question ===
+  // === Helper: Save updated question back to the backend ===
   const save = async () => {
     try {
       const res = await fetch('http://localhost:5005/admin/games', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
+
       const updatedGames = data.games.map((g) => {
         if (g.id.toString() !== gameId) return g;
 
         const formattedQuestion = {
           duration: question.duration,
           correctAnswers: question.correctAnswers,
-          answers: question.answers.map(a => ({ answer: a })),
+          answers: question.answers.map((a) => ({ answer: a })),
           text: question.text,
-          type: question.type,  // ⚠️ 额外字段，用于前端识别用途
+          type: question.type,
           points: question.points || 0,
         };
 
@@ -74,12 +78,14 @@ export default function Editquestion({ gameId, questionId }) {
     }
   };
 
+  // === Handler: Update answer text ===
   const updateAnswer = (idx, value) => {
     const updated = [...question.answers];
     updated[idx] = value;
     setQuestion({ ...question, answers: updated });
   };
 
+  // === Handler: Toggle correct answer selection ===
   const toggleCorrectAnswer = (value) => {
     if (question.type === 'single') {
       setQuestion({
@@ -91,7 +97,7 @@ export default function Editquestion({ gameId, questionId }) {
       if (current.includes(value)) {
         setQuestion({
           ...question,
-          correctAnswers: current.filter(ans => ans !== value),
+          correctAnswers: current.filter((ans) => ans !== value),
         });
       } else {
         setQuestion({
@@ -102,25 +108,30 @@ export default function Editquestion({ gameId, questionId }) {
     }
   };
 
+  // === Handler: Add a new answer (up to 6) ===
   const addAnswer = () => {
     if ((question.answers || []).length >= 6) return;
     setQuestion({
       ...question,
-      answers: [...question.answers, '']
+      answers: [...question.answers, ''],
     });
   };
 
+  // === Handler: Remove an answer ===
   const removeAnswer = (idx) => {
     const removed = question.answers[idx];
     const updated = [...question.answers];
     updated.splice(idx, 1);
-    const updatedCorrect = (question.correctAnswers || []).filter(ans => ans !== removed);
+
+    const updatedCorrect = (question.correctAnswers || []).filter((ans) => ans !== removed);
     setQuestion({ ...question, answers: updated, correctAnswers: updatedCorrect });
   };
 
+  // === UI: Error or loading states ===
   if (error) return <div className="p-6 text-red-500">{error}</div>;
   if (!question) return <div className="p-6">Loading question...</div>;
 
+  // === UI: Edit Question Form ===
   return (
     <div className="p-6 max-w-2xl mx-auto bg-white rounded shadow">
       <h1 className="text-2xl font-bold mb-4">Edit Question</h1>
@@ -142,10 +153,12 @@ export default function Editquestion({ gameId, questionId }) {
         onChange={(e) => {
           const newType = e.target.value;
           let updated = { ...question, type: newType };
+
           if (newType === 'single' && question.correctAnswers.length > 1) {
             updated.correctAnswers = question.correctAnswers.slice(0, 1);
           }
 
+          // For judgement questions, fix answers to True/False
           if (newType === 'judgement') {
             updated.answers = ['True', 'False'];
             updated.correctAnswers = [];
@@ -159,6 +172,7 @@ export default function Editquestion({ gameId, questionId }) {
         <option value="judgement">Judgement</option>
       </select>
 
+      {/* Time Limit */}
       <label className="block font-semibold">Time Limit (seconds)</label>
       <input
         type="number"
@@ -167,16 +181,16 @@ export default function Editquestion({ gameId, questionId }) {
         onChange={(e) => setQuestion({ ...question, duration: parseInt(e.target.value) })}
       />
 
+      {/* Points */}
       <label className="block font-semibold">Points</label>
       <input
         type="number"
         className="w-full p-2 border rounded mb-4"
         value={question.points}
-        onChange={(e) =>
-          setQuestion({ ...question, points: parseInt(e.target.value) || 0 })
-        }
+        onChange={(e) => setQuestion({ ...question, points: parseInt(e.target.value) || 0 })}
       />
 
+      {/* Answers */}
       <label className="block font-semibold mb-2">Answers (from 2 to 6)</label>
       {question.answers.map((ans, idx) => (
         <div key={idx} className="flex items-center space-x-2 mb-2">
@@ -211,6 +225,8 @@ export default function Editquestion({ gameId, questionId }) {
           )}
         </div>
       ))}
+
+      {/* Add Answer Button */}
       {question.type !== 'judgement' && question.answers.length < 6 && (
         <button
           onClick={addAnswer}
@@ -220,6 +236,7 @@ export default function Editquestion({ gameId, questionId }) {
         </button>
       )}
 
+      {/* Save Button */}
       <button
         onClick={save}
         className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded"
