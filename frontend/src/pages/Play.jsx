@@ -93,7 +93,7 @@ export default function Play({ sessionId }) {
       const timeTaken = entry.answeredAt && entry.questionStartedAt
         ? (new Date(entry.answeredAt) - new Date(entry.questionStartedAt)) / 1000
         : null;
-  
+
       return {
         question: idx + 1,
         correct: !!entry.correct,
@@ -145,7 +145,7 @@ export default function Play({ sessionId }) {
     }
     return () => clearInterval(interval);
   }, [isTiming]);
-  
+
   const fetchCorrectAnswers = async () => {
     try {
       const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
@@ -161,7 +161,7 @@ export default function Play({ sessionId }) {
       const answersAsValues = answersToSubmit.map(
         (idx) => question.answers[idx].answer
       );
-  
+
       await fetch(`http://localhost:5005/play/${playerId}/answer`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -170,7 +170,7 @@ export default function Play({ sessionId }) {
     } catch {
       setError("Couldn't submit answers");
     }
-  };  
+  };
 
   const toggleSelect = (idx) => {
     let updated;
@@ -235,46 +235,46 @@ export default function Play({ sessionId }) {
         )}
       </div>
     );
-    } else if (step === 'waiting') {
-      return (
-        <div className="p-6 flex flex-col items-center text-center">
-          <h2 className="text-2xl font-bold mb-2">⌛ Waiting in the Lobby...</h2>
-          <p className="text-gray-600 mb-4">Try the stopwatch challenge while you wait!</p>
-    
-          <div className="text-3xl font-mono mb-2">
-            {stopwatch.toFixed(2)}s
-          </div>
-          <div className="space-x-2 mb-4">
-            {!isTiming ? (
-              <button
-                onClick={() => {
-                  setStopwatch(0);
-                  setIsTiming(true);
-                }}
-                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
-              >
-                Start
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  setIsTiming(false);
-                  const diff = Math.abs(stopwatch - 5.0);
-                  if (diff <= 0.01) {
-                    setLobbyScore((prev) => prev + 1);
-                  }
-                }}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-              >
-                Stop
-              </button>
-            )}
-          </div>
-          <p className="text-sm text-gray-500">Stop the timer at exactly 5.0s!</p>
-          <p className="mt-2 text-lg text-purple-600">🎯 Score: {lobbyScore}</p>
+  } else if (step === 'waiting') {
+    return (
+      <div className="p-6 flex flex-col items-center text-center">
+        <h2 className="text-2xl font-bold mb-2">⌛ Waiting in the Lobby...</h2>
+        <p className="text-gray-600 mb-4">Try the stopwatch challenge while you wait!</p>
+
+        <div className="text-3xl font-mono mb-2">
+          {stopwatch.toFixed(2)}s
         </div>
-      );
-    }
+        <div className="space-x-2 mb-4">
+          {!isTiming ? (
+            <button
+              onClick={() => {
+                setStopwatch(0);
+                setIsTiming(true);
+              }}
+              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              Start
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setIsTiming(false);
+                const diff = Math.abs(stopwatch - 5.0);
+                if (diff <= 0.01) {
+                  setLobbyScore((prev) => prev + 1);
+                }
+              }}
+              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+            >
+              Stop
+            </button>
+          )}
+        </div>
+        <p className="text-sm text-gray-500">Stop the timer at exactly 5.0s!</p>
+        <p className="mt-2 text-lg text-purple-600">🎯 Score: {lobbyScore}</p>
+      </div>
+    );
+  }
 
   if (!question) {
     return <div className="p-6">Loading question...</div>;
