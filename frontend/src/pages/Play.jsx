@@ -13,6 +13,12 @@ export default function Play({ sessionId }) {
   const [error, setError] = useState('');
   const [results, setResults] = useState([]);
 
+  // Stopwatch Minigame
+  const [stopwatch, setStopwatch] = useState(0);
+  const [isTiming, setIsTiming] = useState(false);
+  const [lobbyScore, setLobbyScore] = useState(0);
+
+
   useEffect(() => {
     setPlayerId(null);
     setName('');
@@ -130,6 +136,16 @@ export default function Play({ sessionId }) {
     return () => clearTimeout(timer);
   }, [countdown]);
 
+  useEffect(() => {
+    let interval;
+    if (isTiming) {
+      interval = setInterval(() => {
+        setStopwatch((prev) => prev + 0.01);
+      }, 10);
+    }
+    return () => clearInterval(interval);
+  }, [isTiming]);
+  
   const fetchCorrectAnswers = async () => {
     try {
       const res = await fetch(`http://localhost:5005/play/${playerId}/answer`);
@@ -187,9 +203,7 @@ export default function Play({ sessionId }) {
     );
   }
 
-  if (step === 'waiting') {
-    return <div className="p-6">Waiting for the host to start the game...</div>;
-  } else if (step === 'finished') {
+  if (step === 'finished') {
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <h2 className="text-2xl font-bold mb-4 text-center">🎉 Game Over! Here is how you did:</h2>
@@ -221,7 +235,46 @@ export default function Play({ sessionId }) {
         )}
       </div>
     );
-  } 
+    } else if (step === 'waiting') {
+      return (
+        <div className="p-6 flex flex-col items-center text-center">
+          <h2 className="text-2xl font-bold mb-2">⌛ Waiting in the Lobby...</h2>
+          <p className="text-gray-600 mb-4">Try the stopwatch challenge while you wait!</p>
+    
+          <div className="text-3xl font-mono mb-2">
+            {stopwatch.toFixed(2)}s
+          </div>
+          <div className="space-x-2 mb-4">
+            {!isTiming ? (
+              <button
+                onClick={() => {
+                  setStopwatch(0);
+                  setIsTiming(true);
+                }}
+                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+              >
+                Start
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setIsTiming(false);
+                  const diff = Math.abs(stopwatch - 5.0);
+                  if (diff <= 0.01) {
+                    setLobbyScore((prev) => prev + 1);
+                  }
+                }}
+                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              >
+                Stop
+              </button>
+            )}
+          </div>
+          <p className="text-sm text-gray-500">Stop the timer at exactly 5.0s!</p>
+          <p className="mt-2 text-lg text-purple-600">🎯 Score: {lobbyScore}</p>
+        </div>
+      );
+    }
 
   if (!question) {
     return <div className="p-6">Loading question...</div>;
