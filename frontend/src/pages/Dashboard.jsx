@@ -192,8 +192,11 @@ export default function Dashboard() {
     reader.readAsText(uploadFile);
   };
 
+  // === Render: Main Dashboard ===
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
+
+      {/* === Header === */}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold">My Games</h1>
         <button
@@ -209,9 +212,10 @@ export default function Dashboard() {
 
       {error && <p className="text-red-500 mb-4">{error}</p>}
 
+      {/* === Game Creation & Upload Section === */}
       <div className="mb-6 flex flex-col space-y-4 md:flex-row md:space-y-0 md:space-x-4">
 
-        {/* Create Empty Game Section */}
+        {/* Create Empty Game */}
         <div className="flex space-x-2 items-center">
           <input
             className="p-2 border rounded w-64"
@@ -228,7 +232,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* Upload Game File Section */}
+        {/* Upload Game File */}
         <div className="flex space-x-2 items-center">
           <input
             type="file"
@@ -245,6 +249,7 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* === Game Cards Section === */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {games.map((game) => {
           const questionCount = game.questions?.length || 0;
@@ -257,13 +262,25 @@ export default function Dashboard() {
               key={game.id}
               className="relative bg-white shadow rounded p-4 border hover:border-blue-500 transition duration-150"
             >
-              <div onClick={() => (window.location.hash = `/game/${game.id}`)} className="cursor-pointer">
+              {/* === Game Info (clickable) === */}
+              <div
+                onClick={() => (window.location.hash = `/game/${game.id}`)}
+                className="cursor-pointer"
+              >
                 <h2 className="text-xl font-bold">{game.name}</h2>
-                <p className="text-sm text-gray-600">{questionCount} questions | {totalTime} sec</p>
+                <p className="text-sm text-gray-600">
+                  {questionCount} questions | {totalTime} sec
+                </p>
                 <p className="text-sm mt-1">Created by: {game.owner}</p>
-                <p className="text-sm">Status: {sessionId ? '🟢 Active' : '⚪️ Inactive'}</p>
+                <p className="text-sm">
+                  Status: {sessionId ? '🟢 Active' : '⚪️ Inactive'}
+                </p>
                 {game.thumbnail ? (
-                  <img src={game.thumbnail} alt="Thumbnail" className="mt-2 h-32 w-full object-cover rounded" />
+                  <img
+                    src={game.thumbnail}
+                    alt="Thumbnail"
+                    className="mt-2 h-32 w-full object-cover rounded"
+                  />
                 ) : (
                   <div className="mt-2 h-32 bg-gray-200 flex items-center justify-center text-gray-500 rounded">
                     No thumbnail
@@ -271,6 +288,7 @@ export default function Dashboard() {
                 )}
               </div>
 
+              {/* === Start/Stop Session Buttons === */}
               {!sessionId ? (
                 <button
                   onClick={() => handleStartGame(game.id)}
@@ -287,6 +305,7 @@ export default function Dashboard() {
                 </button>
               )}
 
+              {/* === Edit & Past Sessions Buttons === */}
               <div className="flex space-x-2 mt-2">
                 <button
                   className="flex-1 bg-blue-400 hover:bg-blue-500 text-white py-1 rounded text-sm"
@@ -302,6 +321,7 @@ export default function Dashboard() {
                 </button>
               </div>
 
+              {/* === Delete Game Button === */}
               <button
                 className="mt-2 w-full bg-red-400 hover:bg-red-500 text-white py-1 rounded text-sm"
                 onClick={() => handleDelete(game.id)}
@@ -309,29 +329,25 @@ export default function Dashboard() {
                 Delete Game
               </button>
 
+              {/* === Popup: Session Links === */}
               {showStartPopup && sessionId && (
                 <div className="absolute inset-0 bg-white bg-opacity-95 flex flex-col items-center justify-center z-10 border rounded">
                   <h2 className="text-xl font-bold mb-2">Session Started</h2>
                   <p className="text-sm text-gray-700 mb-2">ID: {sessionId}</p>
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mb-1"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/#/play/${sessionId}`);
-                    }}
+                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/#/play/${sessionId}`)}
                   >
                     Join Link
                   </button>
                   <button
                     className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded mb-1"
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/#/session/${sessionId}`);
-                    }}
+                    onClick={() => navigator.clipboard.writeText(`${window.location.origin}/#/session/${sessionId}`)}
                   >
                     Control Link
                   </button>
                 </div>
               )}
-
             </div>
           );
         })}
