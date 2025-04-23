@@ -12,6 +12,7 @@ export default function Play({ sessionId }) {
   const [lastStartTime, setLastStartTime] = useState(null);
   const [error, setError] = useState('');
   const [results, setResults] = useState([]);
+  const [questionMeta, setQuestionMeta] = useState([]); // Store points and duration
 
   // === Lobby Stopwatch Minigame State ===
   const [stopwatch, setStopwatch] = useState(0);
@@ -84,6 +85,11 @@ export default function Play({ sessionId }) {
         setSelectedAnswers([]);
         setCorrectAnswers([]);
         setLastStartTime(q.isoTimeLastQuestionStarted);
+
+        setQuestionMeta((prev) => ([
+          ...prev,
+          { text: q.text, points: q.points, duration: q.duration }
+        ]));
       }
     }, 2000);
     return () => clearInterval(interval);
@@ -137,10 +143,19 @@ export default function Play({ sessionId }) {
       const timeTaken = entry.answeredAt && entry.questionStartedAt
         ? (new Date(entry.answeredAt) - new Date(entry.questionStartedAt)) / 1000
         : null;
+      const meta = questionMeta[idx] || {};
+      const basePoints = meta.points || 0;
+      const duration = meta.duration || 1;
+      const rawScore = entry.correct && timeTaken
+        ? basePoints * Math.max(0, 1 - (timeTaken / duration) / 2)
+        : 0;
+      const speedPoints = Math.round(rawScore * 10) / 10;
+
       return {
-        question: idx + 1,
+        question: `Q${idx + 1}`,
         correct: !!entry.correct,
-        score: entry.correct ? 1 : 0,
+        normalPoints: basePoints,
+        speedPoints,
         timeTaken: timeTaken !== null ? timeTaken.toFixed(1) : null,
         answers: entry.answers || []
       };
@@ -210,6 +225,11 @@ export default function Play({ sessionId }) {
     return (
       <div className="p-6 max-w-2xl mx-auto">
         <h2 className="text-2xl font-bold mb-4 text-center">🎉 Game Over! Here is how you did:</h2>
+        <p className="text-sm text-gray-700 mb-4 text-center max-w-lg mx-auto">
+          Your score for each question is calculated as
+          <span className="font-semibold"> (1 - (Time Taken ÷ Question Duration) ÷ 2) × Question Points</span>.
+          This rewards faster correct answers with higher points.
+        </p>
         {results.length === 0 ? (
           <p className="text-center text-gray-600">No result data found.</p>
         ) : (
@@ -218,7 +238,8 @@ export default function Play({ sessionId }) {
               <tr>
                 <th className="px-4 py-2 text-left">Question</th>
                 <th className="px-4 py-2 text-center">Correct</th>
-                <th className="px-4 py-2 text-center">Points</th>
+                <th className="px-4 py-2 text-center">Normal Points</th>
+                <th className="px-4 py-2 text-center">Speed-based Points</th>
                 <th className="px-4 py-2 text-center">Time Taken (s)</th>
                 <th className="px-4 py-2 text-left">Your Answers</th>
               </tr>
@@ -226,9 +247,10 @@ export default function Play({ sessionId }) {
             <tbody>
               {results.map((res, idx) => (
                 <tr key={idx} className="border-t">
-                  <td className="px-4 py-2">Q{res.question}</td>
+                  <td className="px-4 py-2">{res.question}</td>
                   <td className="px-4 py-2 text-center">{res.correct ? '✅' : '❌'}</td>
-                  <td className="px-4 py-2 text-center">{res.score}</td>
+                  <td className="px-4 py-2 text-center">{res.normalPoints}</td>
+                  <td className="px-4 py-2 text-center">{res.speedPoints}</td>
                   <td className="px-4 py-2 text-center">{res.timeTaken ?? '-'}</td>
                   <td className="px-4 py-2">{res.answers?.join(', ') || '-'}</td>
                 </tr>
