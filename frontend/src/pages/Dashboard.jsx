@@ -1,4 +1,3 @@
-// Dashboard.jsx
 import { useEffect, useState } from 'react';
 
 export default function Dashboard() {
@@ -12,6 +11,7 @@ export default function Dashboard() {
   const token = localStorage.getItem('token');
   const email = localStorage.getItem('email');
 
+  // === Fetch games and identify active sessions ===
   const fetchGames = async () => {
     try {
       const res = await fetch('http://localhost:5005/admin/games', {
@@ -19,11 +19,10 @@ export default function Dashboard() {
       });
       const data = await res.json();
       setGames(data.games || []);
-
       const active = {};
       for (const game of data.games) {
         if (game.active) {
-          active[game.id] = game.active;
+          active[game.id] = game.active;  // game.active = sessionId
         }
       }
       setActiveSessions(active);
@@ -32,16 +31,18 @@ export default function Dashboard() {
     }
   };
 
+  // === On mount: validate token, auto-refresh games ===
   useEffect(() => {
     if (!token) {
       window.location.hash = '/login';
     } else {
       fetchGames();
-      const interval = setInterval(fetchGames, 3000);
+      const interval = setInterval(fetchGames, 3000);  // Auto-refresh every 3s
       return () => clearInterval(interval);
     }
   }, []);
 
+  // === Handle create empty game ===
   const handleCreate = async () => {
     if (!newGameName.trim()) return;
     try {
@@ -52,28 +53,14 @@ export default function Dashboard() {
       const newId = Date.now();
       const updatedGames = [
         ...data.games,
-        {
-          id: newId,
-          name: newGameName,
-          owner: email,
-          questions: [],
-        },
+        { id: newId, name: newGameName, owner: email, questions: [] },
       ];
-
       const updateRes = await fetch('http://localhost:5005/admin/games', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ games: updatedGames }),
       });
-
-      if (!updateRes.ok) {
-        const errData = await updateRes.json();
-        throw new Error(errData.error || 'Failed to update games');
-      }
-
+      if (!updateRes.ok) throw new Error((await updateRes.json()).error || 'Failed to update games');
       setNewGameName('');
       await fetchGames();
     } catch (err) {
@@ -81,51 +68,40 @@ export default function Dashboard() {
     }
   };
 
+  // === Handle delete game ===
   const handleDelete = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5005/admin/games`, {
+      const res = await fetch('http://localhost:5005/admin/games', {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
       const updatedGames = data.games.filter((game) => game.id !== id);
-
-      const updateRes = await fetch(`http://localhost:5005/admin/games`, {
+      const updateRes = await fetch('http://localhost:5005/admin/games', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ games: updatedGames }),
       });
-
-      if (!updateRes.ok) {
-        const errData = await updateRes.json();
-        throw new Error(errData.error || 'Failed to delete game');
-      }
-
+      if (!updateRes.ok) throw new Error((await updateRes.json()).error || 'Failed to delete game');
       await fetchGames();
     } catch (err) {
       setError(err.message);
     }
   };
 
+  // === Handle start game session ===
   const handleStartGame = async (gameId) => {
     try {
       const res = await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ mutationType: 'START' }),
       });
-
       const data = await res.json();
       const sessionId = data.data.sessionId;
-
       localStorage.setItem('session_game_map', JSON.stringify({
         ...JSON.parse(localStorage.getItem('session_game_map') || '{}'),
         [sessionId]: gameId
       }));
-
       setActiveSessionPopupIds((prev) => [...prev, gameId]);
       await fetchGames();
     } catch {
@@ -133,16 +109,14 @@ export default function Dashboard() {
     }
   };
 
+  // === Handle stop game session ===
   const handleStopGame = async (gameId) => {
     try {
       await fetch(`http://localhost:5005/admin/game/${gameId}/mutate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ mutationType: 'END' }),
       });
-
       setActiveSessionPopupIds((prev) => prev.filter((id) => id !== gameId));
       await fetchGames();
     } catch {
@@ -150,6 +124,7 @@ export default function Dashboard() {
     }
   };
 
+  // === Validate uploaded game file ===
   const validateGameFile = (game) => {
     if (!game.name || !Array.isArray(game.questions)) return false;
     return game.questions.every(q =>
@@ -161,9 +136,9 @@ export default function Dashboard() {
     );
   };
 
+  // === Handle upload game file ===
   const handleUpload = async () => {
     if (!uploadFile) return;
-
     const reader = new FileReader();
     reader.onload = async (e) => {
       try {
@@ -174,10 +149,7 @@ export default function Dashboard() {
         });
         const data = await res.json();
         const newId = Date.now();
-        const updatedGames = [
-          ...data.games,
-          { ...content, id: newId, owner: email }
-        ];
+        const updatedGames = [...data.games, { ...content, id: newId, owner: email }];
         await fetch('http://localhost:5005/admin/games', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
