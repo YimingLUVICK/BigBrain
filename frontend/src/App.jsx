@@ -8,9 +8,10 @@ import Sessioncontrol from './pages/Sessioncontrol';
 import Play from './pages/Play';
 import PastSessions from './pages/PastSessions';
 
-function App() {
+export default function App() {
   const [route, setRoute] = useState(window.location.hash.slice(1) || '/');
 
+  // === Effect: Listen for URL hash changes ===
   useEffect(() => {
     const onHashChange = () => {
       setRoute(window.location.hash.slice(1) || '/');
@@ -19,6 +20,7 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
 
+  // === Routing logic ===
   let Page;
   if (route === '/login') {
     Page = <Login />;
@@ -31,21 +33,20 @@ function App() {
     Page = <Sessioncontrol sessionId={sessionId} />;
   } else if (route.startsWith('/game/') && route.endsWith('/sessions')) {
     const gameId = route.split('/')[2];
-    Page = <PastSessions gameId={gameId} />;  
+    Page = <PastSessions gameId={gameId} />;
   } else if (route.startsWith('/game/') && route.includes('/question/')) {
-    // ✅ 支持路径：/#/game/{gameId}/question/{questionId}
     const parts = route.split('/');
     const gameId = parts[2];
     const questionId = parts[4];
     Page = <Editquestion gameId={gameId} questionId={questionId} />;
   } else if (route.startsWith('/game/')) {
-    // ✅ 支持路径：/#/game/{gameId}
     const gameId = route.split('/')[2];
     Page = <Editgame gameId={gameId} />;
   } else if (route.startsWith('/play/')) {
     const sessionId = route.split('/')[2];
     Page = <Play sessionId={sessionId} />;
   } else {
+    // === Default landing page ===
     Page = (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
         <h1 className="text-4xl font-bold mb-6">Welcome to BigBrain!</h1>
@@ -69,5 +70,3 @@ function App() {
 
   return <div>{Page}</div>;
 }
-
-export default App;
