@@ -1,0 +1,22 @@
+{
+    "name": "Sample Game",
+    "questions": [
+      {
+        "text": "What is 2 + 2?",
+        "answers": [{ "answer": "3" }, { "answer": "4" }],
+        "correctAnswers": ["4"],
+        "type": "single",
+        "duration": 30,
+        "points": 10
+      },
+      {
+        "text": "Select prime numbers",
+        "answers": [{ "answer": "2" }, { "answer": "4" }, { "answer": "5" }],
+        "correctAnswers": ["2", "5"],
+        "type": "multiple",
+        "duration": 30,
+        "points": 15
+      }
+    ]
+  }
+  
