@@ -6,6 +6,7 @@ export default function Sessioncontrol({ sessionId }) {
   const [status, setStatus] = useState(null);
   const [results, setResults] = useState(null);
   const [gameId, setGameId] = useState(null);
+  const [gameMeta, setGameMeta] = useState(null);
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
 
@@ -32,6 +33,22 @@ export default function Sessioncontrol({ sessionId }) {
       setResults(data.results);
     } catch (_err) {
       setError('Failed to fetch results');
+    }
+  };
+
+  const fetchGameMeta = async () => {
+    try {
+      const res = await fetch(`http://localhost:5005/admin/games`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      const game = data.games.find(g => g.id === gameId);
+      if (game) {
+        const meta = game.questions.map(q => ({ points: q.points, duration: q.duration }));
+        setGameMeta(meta);
+      }
+    } catch (_err) {
+      setError('Failed to fetch game metadata');
     }
   };
 
@@ -77,6 +94,10 @@ export default function Sessioncontrol({ sessionId }) {
   }, [sessionId]);
 
   useEffect(() => {
+    if (gameId) fetchGameMeta();
+  }, [gameId]);
+
+  useEffect(() => {
     if (!status || !status.active || status.position >= 0) return;
     const interval = setInterval(() => {
       fetchStatus();
@@ -90,8 +111,26 @@ export default function Sessioncontrol({ sessionId }) {
     }
   }, [status?.active]);
 
+  const calculateSpeedPoints = (answers) => {
+    if (!gameMeta) return 0;
+    return answers.reduce((total, ans, idx) => {
+      if (!ans.correct) return total;
+      const timeTaken = ans.answeredAt && ans.questionStartedAt
+        ? (new Date(ans.answeredAt) - new Date(ans.questionStartedAt)) / 1000
+        : null;
+      const { points, duration } = gameMeta[idx] || { points: 0, duration: 1 };
+      if (!timeTaken) return total;
+      const rawScore = points * Math.max(0, 1 - (timeTaken / duration) / 2);
+      return total + Math.round(rawScore * 10) / 10;
+    }, 0);
+  };
+
   const topPlayers = results ? [...results]
-    .sort((a, b) => b.answers.filter(ans => ans.correct).length - a.answers.filter(ans => ans.correct).length)
+    .map(player => ({
+      ...player,
+      speedPoints: calculateSpeedPoints(player.answers)
+    }))
+    .sort((a, b) => b.speedPoints - a.speedPoints)
     .slice(0, 5) : [];
 
   const questionStats = () => {
@@ -165,14 +204,14 @@ export default function Sessioncontrol({ sessionId }) {
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-4 py-2 text-left">Player</th>
-                <th className="px-4 py-2">Score</th>
+                <th className="px-4 py-2">Speed-based Points</th>
               </tr>
             </thead>
             <tbody>
               {topPlayers.map((player, idx) => (
                 <tr key={idx} className="border-t">
                   <td className="px-4 py-2">{player.name}</td>
-                  <td className="px-4 py-2">{player.answers.filter(ans => ans.correct).length}</td>
+                  <td className="px-4 py-2">{player.speedPoints}</td>
                 </tr>
               ))}
             </tbody>
