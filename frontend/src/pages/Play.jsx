@@ -311,6 +311,29 @@ export default function Play({ sessionId }) {
       <h2 className="text-xl font-bold mb-2">{question.text}</h2>
       <p className="text-sm text-gray-600 mb-2">Type: {question.type}</p>
       <p className="text-sm mb-4">Time Left: {countdown}s</p>
+      {/* show image (if have) */}
+      {question.image && (
+        <div className="mb-4">
+          <img
+            src={question.image}
+            alt="Question visual"
+            className="w-full max-h-64 object-contain rounded border"
+          />
+        </div>
+      )}
+      {/* show video url (if have) */}
+      {question.video && (
+        <div className="mb-4">
+          <video
+            controls
+            className="w-full max-h-64 rounded border"
+          >
+            <source src={question.video} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
+        </div>
+      )}
+
       {question.answers.map((ans, idx) => (
         <label key={idx} className="block mb-2">
           <input
