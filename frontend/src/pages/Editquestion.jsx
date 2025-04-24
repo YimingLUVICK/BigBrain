@@ -6,6 +6,9 @@ export default function Editquestion({ gameId, questionId }) {
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
 
+  const [imageBase64, setImageBase64] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+
   // === Effect: Fetch game and question data ===
   useEffect(() => {
     const fetchData = async () => {
@@ -30,7 +33,11 @@ export default function Editquestion({ gameId, questionId }) {
           correctAnswers: q.correctAnswers || [],
           duration: q.duration || 30,
           points: q.points ?? 0,
+          image: q.image || '',
+          video: q.video || '',
         });
+        setImageBase64(q.image || '');
+        setVideoUrl(q.video || '');
       } catch {
         setError('Failed to fetch game data');
       }
@@ -56,6 +63,8 @@ export default function Editquestion({ gameId, questionId }) {
           text: question.text,
           type: question.type,
           points: question.points || 0,
+          image: imageBase64,
+          video: videoUrl,
         };
 
         const updatedQuestions = [...g.questions];
@@ -235,6 +244,43 @@ export default function Editquestion({ gameId, questionId }) {
           Add Answer
         </button>
       )}
+
+      <label className="block font-semibold mt-4">Upload Image</label>
+      <input
+        type="file"
+        accept="image/*"
+        className="w-full p-2 border rounded mb-4"
+        onChange={(e) => {
+          const file = e.target.files[0];
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setImageBase64(reader.result);
+          };
+          if (file) {
+            reader.readAsDataURL(file);
+          }
+        }}
+      />
+      {imageBase64 && (
+        <div className="mb-4">
+          <img src={imageBase64} alt="Uploaded" className="w-48 h-auto rounded border mb-2" />
+          <button
+            onClick={() => setImageBase64('')}
+            className="bg-red-400 hover:bg-red-500 text-white px-3 py-1 rounded text-sm"
+          >
+            Remove Image
+          </button>
+        </div>
+      )}
+
+      <label className="block font-semibold">Video URL (optional)</label>
+      <input
+        type="url"
+        className="w-full p-2 border rounded mb-4"
+        placeholder="https://example.com/video"
+        value={videoUrl}
+        onChange={(e) => setVideoUrl(e.target.value)}
+      />
 
       {/* Save Button */}
       <button
