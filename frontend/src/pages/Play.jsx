@@ -187,6 +187,14 @@ export default function Play({ sessionId }) {
     }
   };
 
+  // === Get the youtube link ===
+  const extractYouTubeId = (url) => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = url.match(regex);
+    return match ? match[1] : '';
+  };
+  
+
   // === Handle selecting/deselecting an answer ===
   const toggleSelect = (idx) => {
     let updated;
@@ -304,12 +312,35 @@ export default function Play({ sessionId }) {
       </div>
     );
   }
-  
+
   return (
     <div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow">
       <h2 className="text-2xl font-bold mb-4">{question.text}</h2>
+
+      {/* Media Display */}
+      {question.image && (
+        <img
+          src={question.image}
+          alt="Question media"
+          className="mb-4 rounded-2xl shadow max-h-96 mx-auto"
+        />
+      )}
+      {question.video && (
+        <div className="mb-4 rounded-2xl shadow overflow-hidden max-w-full aspect-video">
+          <iframe
+            src={`https://www.youtube.com/embed/${extractYouTubeId(question.video)}`}
+            title="Question video"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full rounded-2xl"
+          ></iframe>
+        </div>
+      )}
+
       <p className="text-gray-600 mb-2">Type: {question.type}</p>
       <p className="text-sm text-gray-600 mb-4">Time Left: {countdown}s</p>
+
       {question.answers.map((ans, idx) => (
         <label key={idx} className="block mb-3">
           <input
@@ -327,8 +358,11 @@ export default function Play({ sessionId }) {
           )}
         </label>
       ))}
+
       {correctAnswers.length > 0 && (
-        <p className="mt-4 text-green-600 font-semibold">Correct answers shown above.</p>
+        <p className="mt-4 text-green-600 font-semibold">
+          Correct answers shown above.
+        </p>
       )}
     </div>
   );
