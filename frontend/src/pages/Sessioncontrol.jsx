@@ -210,7 +210,7 @@ export default function Sessioncontrol({ sessionId }) {
             <tbody>
               {topPlayers.map((player, idx) => (
                 <tr key={idx} className="border-t">
-                  <td className="px-4 py-2">{player.name}</td>
+                  <td className="px-4 py-2 text-left">{player.name}</td>
                   <td className="px-4 py-2">{player.speedPoints}</td>
                 </tr>
               ))}
@@ -227,12 +227,14 @@ export default function Sessioncontrol({ sessionId }) {
             </BarChart>
           </ResponsiveContainer>
 
-          <h2 className="text-xl font-bold mb-4 mt-8">Average Response Time per Question</h2>
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={stats}>
+          <h2 className="text-xl font-bold mb-4 mt-8">
+            Average Response Time per Question
+          </h2>
+          <ResponsiveContainer width="100%" height={600}>
+            <LineChart data={stats} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="question" />
-              <YAxis />
+              <YAxis type="number" domain={[0, 'dataMax']} />
               <Tooltip />
               <Line type="monotone" dataKey="avgTime" stroke="#8884d8" />
             </LineChart>

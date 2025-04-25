@@ -187,6 +187,14 @@ export default function Play({ sessionId }) {
     }
   };
 
+  // === Get the youtube link ===
+  const extractYouTubeId = (url) => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i;
+    const match = url.match(regex);
+    return match ? match[1] : '';
+  };
+  
+
   // === Handle selecting/deselecting an answer ===
   const toggleSelect = (idx) => {
     let updated;
@@ -204,18 +212,21 @@ export default function Play({ sessionId }) {
   // === UI: Join screen ===
   if (step === 'join') {
     return (
-      <div className="p-6 max-w-xl mx-auto">
-        <h2 className="text-xl font-bold mb-4">Join Session {sessionId}</h2>
+      <div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow">
+        <h2 className="text-2xl font-bold mb-4">Join Session {sessionId}</h2>
         <input
-          className="border p-2 w-full mb-4"
+          className="border p-3 w-full rounded-2xl mb-4 shadow"
           placeholder="Your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded" onClick={join}>
+        <button
+          className="bg-blue-500 hover:bg-blue-600 text-white px-5 py-2 rounded-2xl shadow"
+          onClick={join}
+        >
           Join
         </button>
-        {error && <p className="text-red-500 mt-2">{error}</p>}
+        {error && <p className="text-red-500 mt-4">{error}</p>}
       </div>
     );
   }
@@ -223,9 +234,9 @@ export default function Play({ sessionId }) {
   // === UI: Finished screen with results table ===
   if (step === 'finished') {
     return (
-      <div className="p-6 max-w-2xl mx-auto">
+      <div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow">
         <h2 className="text-2xl font-bold mb-4 text-center">🎉 Game Over! Here is how you did:</h2>
-        <p className="text-sm text-gray-700 mb-4 text-center max-w-lg mx-auto">
+        <p className="text-sm text-gray-700 mb-6 text-center max-w-lg mx-auto">
           Your score for each question is calculated as
           <span className="font-semibold"> (1 - (Time Taken ÷ Question Duration) ÷ 2) × Question Points</span>.
           This rewards faster correct answers with higher points.
@@ -233,14 +244,14 @@ export default function Play({ sessionId }) {
         {results.length === 0 ? (
           <p className="text-center text-gray-600">No result data found.</p>
         ) : (
-          <table className="table-auto w-full border">
+          <table className="table-auto w-full border mb-4">
             <thead className="bg-gray-100">
               <tr>
                 <th className="px-4 py-2 text-left">Question</th>
                 <th className="px-4 py-2 text-center">Correct</th>
                 <th className="px-4 py-2 text-center">Normal Points</th>
-                <th className="px-4 py-2 text-center">Speed-based Points</th>
-                <th className="px-4 py-2 text-center">Time Taken (s)</th>
+                <th className="px-4 py-2 text-center">Speed Points</th>
+                <th className="px-4 py-2 text-center">Time (s)</th>
                 <th className="px-4 py-2 text-left">Your Answers</th>
               </tr>
             </thead>
@@ -265,77 +276,73 @@ export default function Play({ sessionId }) {
   // === UI: Waiting lobby with stopwatch minigame ===
   if (step === 'waiting') {
     return (
-      <div className="p-6 flex flex-col items-center text-center">
+      <
+        div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow text-center">
         <h2 className="text-2xl font-bold mb-2">⌛ Waiting in the Lobby...</h2>
-        <p className="text-gray-600 mb-4">Try the stopwatch challenge while you wait!</p>
+        <p className="text-gray-600 mb-6">Try the stopwatch challenge while you wait!</p>
         <div className="text-5xl font-mono mb-4">{stopwatch.toFixed(2)}s</div>
-        <div className="space-x-2 mb-4">
+        <div className="space-x-4 mb-6">
           {!isTiming ? (
             <button
-              onClick={() => {
-                setStopwatch(0);
-                setIsTiming(true);
-              }}
-              className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+              onClick={() => { setStopwatch(0); setIsTiming(true); }}
+              className="bg-green-500 hover:bg-green-600 text-white px-5 py-2 rounded-2xl shadow"
             >
               Start
             </button>
           ) : (
             <button
-              onClick={() => {
-                setIsTiming(false);
-                const diff = Math.abs(stopwatch - 5.0);
-                if (diff <= 0.01) {
-                  setLobbyScore((prev) => prev + 1);
-                }
-              }}
-              className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+              onClick={() => { setIsTiming(false); const diff = Math.abs(stopwatch - 5.0); if (diff <= 0.01) setLobbyScore((prev) => prev + 1); }}
+              className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-2xl shadow"
             >
               Stop
             </button>
           )}
         </div>
         <p className="text-sm text-gray-500">Stop the timer at exactly 5.0s!</p>
-        <p className="mt-2 text-lg text-purple-600">🎯 Score: {lobbyScore}</p>
+        <p className="mt-4 text-lg text-purple-600">🎯 Score: {lobbyScore}</p>
       </div>
     );
   }
 
   // === UI: Main gameplay (question/answer screen) ===
   if (!question) {
-    return <div className="p-6">Loading question...</div>;
+    return (
+      <div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow text-center">
+        <p>Loading question...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="p-6 max-w-xl mx-auto">
-      <h2 className="text-xl font-bold mb-2">{question.text}</h2>
-      <p className="text-sm text-gray-600 mb-2">Type: {question.type}</p>
-      <p className="text-sm mb-4">Time Left: {countdown}s</p>
-      {/* show image (if have) */}
+    <div className="p-6 max-w-4xl mx-auto bg-white rounded-2xl shadow">
+      <h2 className="text-2xl font-bold mb-4">{question.text}</h2>
+
+      {/* Media Display */}
       {question.image && (
-        <div className="mb-4">
-          <img
-            src={question.image}
-            alt="Question visual"
-            className="w-full max-h-64 object-contain rounded border"
-          />
-        </div>
+        <img
+          src={question.image}
+          alt="Question media"
+          className="mb-4 rounded-2xl shadow max-h-96 mx-auto"
+        />
       )}
-      {/* show video url (if have) */}
       {question.video && (
-        <div className="mb-4">
-          <video
-            controls
-            className="w-full max-h-64 rounded border"
-          >
-            <source src={question.video} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+        <div className="mb-4 rounded-2xl shadow overflow-hidden max-w-full aspect-video">
+          <iframe
+            src={`https://www.youtube.com/embed/${extractYouTubeId(question.video)}`}
+            title="Question video"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="w-full h-full rounded-2xl"
+          ></iframe>
         </div>
       )}
 
+      <p className="text-gray-600 mb-2">Type: {question.type}</p>
+      <p className="text-sm text-gray-600 mb-4">Time Left: {countdown}s</p>
+
       {question.answers.map((ans, idx) => (
-        <label key={idx} className="block mb-2">
+        <label key={idx} className="block mb-3">
           <input
             type={question.type === 'multiple' ? 'checkbox' : 'radio'}
             name="answer"
@@ -351,8 +358,11 @@ export default function Play({ sessionId }) {
           )}
         </label>
       ))}
+
       {correctAnswers.length > 0 && (
-        <p className="mt-4 text-green-600">Correct answers shown above.</p>
+        <p className="mt-4 text-green-600 font-semibold">
+          Correct answers shown above.
+        </p>
       )}
     </div>
   );
