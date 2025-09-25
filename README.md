@@ -1,4 +1,5 @@
 # Big Brain APP
+This is a quiz app where admin can create a game and start a session while players can join the session to answer questions to get their results.
 
 ## Backend Setup
 
@@ -31,3 +32,6 @@ Players can join and play a game session by a url from game admin.
 
 ### 5. Results display
 Game sessions' results will be displayed.
+
+## Authors
+Yiming LU & Tracie Duong (https://facebook.com/tracie.duong.92)
