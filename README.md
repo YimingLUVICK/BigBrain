@@ -9,6 +9,8 @@ nvm use 18.19.0
 npm install
 npm start
 ```
+Backend is provided by unsw course comp6080. It is constructed by Express.js and Swagger UI.
+
 ## Frontend Setup
 
 ```bash
